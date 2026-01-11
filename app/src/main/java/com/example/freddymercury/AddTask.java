@@ -23,7 +23,7 @@ public class AddTask extends AppCompatActivity {
     EditText taskTitleInput;
     TextView dueDateText;
     Button saveTaskBtn;
-    Button Back;
+
 
     String selectedDate = "";
 
@@ -38,7 +38,7 @@ public class AddTask extends AppCompatActivity {
         taskTitleInput = findViewById(R.id.taskTitleInput);
         dueDateText = findViewById(R.id.dueDateText);
         saveTaskBtn = findViewById(R.id.saveTaskBtn);
-        Back=findViewById(R.id.backBtn);
+
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
@@ -87,6 +87,8 @@ public class AddTask extends AppCompatActivity {
                 })
                 .addOnFailureListener(e ->
                         Toast.makeText(this, "Error saving task", Toast.LENGTH_SHORT).show());
+        Intent intent = new Intent(AddTask.this, Home.class);
+        startActivity(intent);
     }
 
 
