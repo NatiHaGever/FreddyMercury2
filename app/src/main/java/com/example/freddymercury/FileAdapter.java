@@ -13,7 +13,7 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
     private final List<TaskFile> fileList;
     private final OnFileClickListener listener;
 
-    // Interface לטיפול בלחיצות על קובץ
+
     public interface OnFileClickListener {
         void onFileClick(TaskFile taskFile);
     }
@@ -26,7 +26,7 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
     @NonNull
     @Override
     public FileViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // שים לב: אתה צריך ליצור קובץ XML בשם file_item
+
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.file_item, parent, false);
         return new FileViewHolder(view);
@@ -37,11 +37,11 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
         TaskFile currentFile = fileList.get(position);
         holder.fileName.setText(currentFile.fileName);
 
-        // מציג כמה משימות יש בתוך הקובץ
+
         int taskCount = currentFile.tasks != null ? currentFile.tasks.size() : 0;
         holder.fileCount.setText(taskCount + " Tasks");
 
-        // הגדרת הלחיצה על כל התיקייה
+
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) {
                 listener.onFileClick(currentFile);
