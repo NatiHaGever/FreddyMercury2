@@ -19,6 +19,13 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"/>
 
+    <TextView
+        android:id="@+id/Description"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
     <LinearLayout
         android:orientation="horizontal"
         android:layout_width="wrap_content"
@@ -38,4 +45,5 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"/>
     </LinearLayout>
+
 </LinearLayout>

@@ -21,8 +21,10 @@ import java.util.Calendar;
 public class AddTask extends AppCompatActivity {
 
     EditText taskTitleInput;
+
     TextView dueDateText;
     Button saveTaskBtn;
+    EditText taskDescription;
 
 
     String selectedDate = "";
@@ -34,7 +36,7 @@ public class AddTask extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_task);
-
+        taskDescription=findViewById(R.id.editDescription);
         taskTitleInput = findViewById(R.id.taskTitleInput);
         dueDateText = findViewById(R.id.dueDateText);
         saveTaskBtn = findViewById(R.id.saveTaskBtn);
@@ -70,14 +72,14 @@ public class AddTask extends AppCompatActivity {
 
     private void saveTask() {
         String title = taskTitleInput.getText().toString().trim();
-
+        String desc = taskDescription.getText().toString().trim();
         if (title.isEmpty() || selectedDate.isEmpty()) {
             Toast.makeText(this, "Fill all fields", Toast.LENGTH_SHORT).show();
             return;
         }
 
         String userId = auth.getCurrentUser().getUid();
-        Task task = new Task(title, selectedDate, userId);
+        Task task = new Task(title, selectedDate, userId,desc);
 
         db.collection("tasks")
                 .add(task)

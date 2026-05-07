@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.text.BreakIterator;
 import java.util.List;
 
 public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder> {
@@ -35,6 +36,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     public void onBindViewHolder(@NonNull TaskViewHolder holder, int position) {
         Task t = tasks.get(position);
         holder.title.setText(t.title);
+        holder.description.setText(t.description);
         holder.date.setText("Due: " + t.dueDate);
         holder.completedBtn.setText(t.completed ? "Undo" : "Done");
 
@@ -51,6 +53,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
             tasks.remove(position);
             notifyItemRemoved(position);
         });
+
     }
 
     @Override
@@ -59,7 +62,8 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     }
 
     static class TaskViewHolder extends RecyclerView.ViewHolder {
-        TextView title, date;
+
+        TextView title, date,description;
         Button completedBtn, deleteBtn;
 
         public TaskViewHolder(@NonNull View itemView) {

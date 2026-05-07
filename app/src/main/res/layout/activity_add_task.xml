@@ -6,9 +6,19 @@
 
     <EditText
         android:id="@+id/taskTitleInput"
-        android:hint="Task Title"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:inputType="text"
+        android:text="Name" />
+
+    <EditText
+        android:id="@+id/editDescription"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:hint="Description"
+        android:inputType="text" />
 
     <TextView
         android:id="@+id/dueDateText"
@@ -21,10 +31,10 @@
 
     <Button
         android:id="@+id/saveTaskBtn"
-        android:text="Save Task"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"/>
+        android:layout_marginTop="16dp"
+        android:text="Save Task" />
 
 
 </LinearLayout>
