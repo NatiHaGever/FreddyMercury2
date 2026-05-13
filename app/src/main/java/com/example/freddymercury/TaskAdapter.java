@@ -40,14 +40,14 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         holder.date.setText("Due: " + t.dueDate);
         holder.completedBtn.setText(t.completed ? "Undo" : "Done");
 
-        // סמן / בטל
+
         holder.completedBtn.setOnClickListener(v -> {
             t.completed = !t.completed;
             db.collection("tasks").document(t.docId).update("completed", t.completed);
             notifyItemChanged(position);
         });
 
-        // מחק משימה
+
         holder.deleteBtn.setOnClickListener(v -> {
             db.collection("tasks").document(t.docId).delete();
             tasks.remove(position);
@@ -72,6 +72,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
             date = itemView.findViewById(R.id.taskDate);
             completedBtn = itemView.findViewById(R.id.completedBtn);
             deleteBtn = itemView.findViewById(R.id.deleteBtn);
+            description=itemView.findViewById(R.id.Description);
         }
     }
 }

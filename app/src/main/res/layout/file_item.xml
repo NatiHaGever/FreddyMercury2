@@ -31,17 +31,23 @@
                 android:id="@+id/fileName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="שם הקובץ"
+                android:text="File Name"
+                android:textColor="#212121"
                 android:textSize="18sp"
-                android:textStyle="bold"
-                android:textColor="#212121"/>
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/fileCount"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="0 Tasks"
-                android:textColor="#757575"/>
+                android:textColor="#757575" />
+
+            <Button
+                android:id="@+id/AddTaskBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Add" />
         </LinearLayout>
 
         <TextView

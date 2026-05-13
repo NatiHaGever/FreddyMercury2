@@ -3,6 +3,7 @@ package com.example.freddymercury;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -14,6 +15,7 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
     private final OnFileClickListener listener;
 
 
+
     public interface OnFileClickListener {
         void onFileClick(TaskFile taskFile);
     }
@@ -21,6 +23,7 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
     public FileAdapter(List<TaskFile> fileList, OnFileClickListener listener) {
         this.fileList = fileList;
         this.listener = listener;
+
     }
 
     @NonNull
@@ -56,9 +59,11 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
 
     static class FileViewHolder extends RecyclerView.ViewHolder {
         TextView fileName, fileCount;
+        Button AddTaskBtn;
 
         public FileViewHolder(@NonNull View itemView) {
             super(itemView);
+            AddTaskBtn = itemView.findViewById(R.id.AddTaskBtn);
             fileName = itemView.findViewById(R.id.fileName);
             fileCount = itemView.findViewById(R.id.fileCount);
         }

@@ -85,7 +85,7 @@ public class AddTask extends AppCompatActivity {
                 .add(task)
                 .addOnSuccessListener(doc -> {
                     Toast.makeText(this, "Task saved", Toast.LENGTH_SHORT).show();
-                    finish(); // חזרה למסך הבית
+                    finish();
                 })
                 .addOnFailureListener(e ->
                         Toast.makeText(this, "Error saving task", Toast.LENGTH_SHORT).show());
