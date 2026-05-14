@@ -26,7 +26,7 @@ public class Home extends AppCompatActivity {
     TextView todayDateText;
     RecyclerView tasksRecycler;
     FloatingActionButton addTask;
-    Button logoutBtn, deleteAllBtn;
+    Button logoutBtn, deleteAllBtn,FileBtn;
 
     FirebaseFirestore db;
     FirebaseAuth auth;
@@ -43,6 +43,8 @@ public class Home extends AppCompatActivity {
         addTask = findViewById(R.id.addTaskFab);
         logoutBtn = findViewById(R.id.logoutBtn);
         deleteAllBtn = findViewById(R.id.deleteAllBtn);
+        FileBtn = findViewById(R.id.FileBtn);
+
 
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
@@ -67,6 +69,9 @@ public class Home extends AppCompatActivity {
         // Add Task
         addTask.setOnClickListener(v ->
                 startActivity(new Intent(Home.this, AddTask.class))
+        );
+        FileBtn.setOnClickListener(v ->
+                startActivity(new Intent(Home.this, AddFile.class))
         );
 
         // Delete All

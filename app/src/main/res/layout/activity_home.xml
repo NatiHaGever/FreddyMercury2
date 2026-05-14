@@ -20,11 +20,11 @@
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/tasksRecycler"
-        android:layout_below="@id/todayDateText"
-        android:layout_above="@id/addTaskFab"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="16dp"/>
+        android:layout_above="@id/addTaskFab"
+        android:layout_below="@id/todayDateText"
+        android:layout_marginTop="16dp" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/addTaskFab"
@@ -43,4 +43,11 @@
         android:layout_alignParentStart="true"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"/>
+
+    <Button
+        android:id="@+id/FileBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="AddFile" />
+
 </RelativeLayout>
