@@ -1,5 +1,6 @@
 package com.example.freddymercury;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
@@ -51,5 +52,8 @@ public class AddFile extends AppCompatActivity {
                 })
                 .addOnFailureListener(e ->
                         Toast.makeText(this, "Error creating file", Toast.LENGTH_SHORT).show());
+        Intent intent = new Intent(AddFile.this, Home.class);
+        startActivity(intent);
     }
-}
+    }
+

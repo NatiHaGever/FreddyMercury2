@@ -17,6 +17,7 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
     public interface OnFileClickListener {
         void onFileClick(TaskFile taskFile);
         void onAddTaskToFileClick(TaskFile taskFile);
+        void onDeleteFileClick(TaskFile taskFile);
     }
 
     public FileAdapter(List<TaskFile> fileList, OnFileClickListener listener) {
@@ -51,6 +52,12 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
                 listener.onAddTaskToFileClick(currentFile);
             }
         });
+
+        holder.DeleteFileBtn.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onDeleteFileClick(currentFile);
+            }
+        });
     }
 
     @Override
@@ -60,11 +67,12 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
 
     static class FileViewHolder extends RecyclerView.ViewHolder {
         TextView fileName, fileCount;
-        Button AddTaskBtn;
+        Button AddTaskBtn, DeleteFileBtn;
 
         public FileViewHolder(@NonNull View itemView) {
             super(itemView);
             AddTaskBtn = itemView.findViewById(R.id.AddTaskBtn);
+            DeleteFileBtn = itemView.findViewById(R.id.DeleteFileBtn);
             fileName = itemView.findViewById(R.id.fileName);
             fileCount = itemView.findViewById(R.id.fileCount);
         }

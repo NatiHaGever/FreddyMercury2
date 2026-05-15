@@ -43,11 +43,27 @@
                 android:text="0 Tasks"
                 android:textColor="#757575" />
 
-            <Button
-                android:id="@+id/AddTaskBtn"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Add" />
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/AddTaskBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Add"
+                    android:minWidth="60dp"
+                    android:layout_marginEnd="8dp"/>
+
+                <Button
+                    android:id="@+id/DeleteFileBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Delete"
+                    android:minWidth="60dp"
+                    android:backgroundTint="#FF5252"/>
+            </LinearLayout>
         </LinearLayout>
 
         <TextView
