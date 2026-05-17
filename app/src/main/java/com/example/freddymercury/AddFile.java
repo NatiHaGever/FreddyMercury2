@@ -1,6 +1,5 @@
 package com.example.freddymercury;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
@@ -16,6 +15,8 @@ public class AddFile extends AppCompatActivity {
     EditText fileNameInput;
     Button saveFileBtn;
 
+    String groupId = null;
+
     FirebaseFirestore db;
     FirebaseAuth auth;
 
@@ -23,6 +24,8 @@ public class AddFile extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_file);
+
+        groupId = getIntent().getStringExtra("groupId");
 
         fileNameInput = findViewById(R.id.fileNameInput);
         saveFileBtn = findViewById(R.id.saveFileBtn);
@@ -43,17 +46,17 @@ public class AddFile extends AppCompatActivity {
 
         String userId = auth.getCurrentUser().getUid();
         TaskFile taskFile = new TaskFile(fileName, userId);
+        if (groupId != null) {
+            taskFile.groupId = groupId;
+        }
 
         db.collection("files")
                 .add(taskFile)
                 .addOnSuccessListener(doc -> {
                     Toast.makeText(this, "File created successfully", Toast.LENGTH_SHORT).show();
-                    finish();
+                    finish(); // This correctly returns you to the Group or Home screen
                 })
                 .addOnFailureListener(e ->
                         Toast.makeText(this, "Error creating file", Toast.LENGTH_SHORT).show());
-        Intent intent = new Intent(AddFile.this, Home.class);
-        startActivity(intent);
     }
-    }
-
+}

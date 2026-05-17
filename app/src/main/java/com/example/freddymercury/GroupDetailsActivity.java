@@ -18,59 +18,52 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.firebase.firestore.WriteBatch;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
-public class Home extends AppCompatActivity implements FileAdapter.OnFileClickListener, TaskAdapter.OnTaskActionListener, NavigationView.OnNavigationItemSelectedListener {
+public class GroupDetailsActivity extends AppCompatActivity implements FileAdapter.OnFileClickListener, TaskAdapter.OnTaskActionListener, NavigationView.OnNavigationItemSelectedListener {
 
-    TextView todayDateText;
-    RecyclerView tasksRecycler, filesRecycler;
-    FloatingActionButton addTask;
-    Button deleteAllBtn, FileBtn;
+    private Group group;
+    private TextView groupTitle;
+    private RecyclerView tasksRecycler, filesRecycler;
+    private TaskAdapter taskAdapter;
+    private FileAdapter fileAdapter;
+    private List<Task> taskList = new ArrayList<>();
+    private List<TaskFile> fileList = new ArrayList<>();
 
-    FirebaseFirestore db;
-    FirebaseAuth auth;
-
-    TaskAdapter taskAdapter;
-    List<Task> taskList;
-
-    FileAdapter fileAdapter;
-    List<TaskFile> fileList;
-
-    ListenerRegistration taskListener, fileListener;
+    private FirebaseFirestore db;
+    private FirebaseAuth auth;
+    private ListenerRegistration taskListener, fileListener;
 
     private DrawerLayout drawerLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_home);
+        setContentView(R.layout.activity_group_details);
 
-        db = FirebaseFirestore.getInstance();
-        auth = FirebaseAuth.getInstance();
-
-        // Check if user is logged in
-        if (auth.getCurrentUser() == null) {
-            startActivity(new Intent(this, LogIn.class));
+        group = (Group) getIntent().getSerializableExtra("group");
+        if (group == null) {
             finish();
             return;
         }
 
+        db = FirebaseFirestore.getInstance();
+        auth = FirebaseAuth.getInstance();
+
         // --- Toolbar Setup ---
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setTitle(group.groupName);
+        }
 
         // --- Side Menu (Navigation Drawer) Setup ---
         drawerLayout = findViewById(R.id.drawer_layout);
@@ -90,7 +83,7 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
             if (emailText != null) emailText.setText(email);
         }
 
-        // Modern way to handle back press
+        // Fix: Handle back press correctly to prevent crash
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
@@ -103,31 +96,31 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
             }
         });
 
-        todayDateText = findViewById(R.id.todayDateText);
-        tasksRecycler = findViewById(R.id.tasksRecycler);
-        filesRecycler = findViewById(R.id.filesRecycler);
-        addTask = findViewById(R.id.addTaskFab);
-        deleteAllBtn = findViewById(R.id.deleteAllBtn);
-        FileBtn = findViewById(R.id.FileBtn);
+        groupTitle = findViewById(R.id.groupTitleText);
+        groupTitle.setText(group.groupName);
 
-        String today = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(new Date());
-        todayDateText.setText("Today: " + today);
+        tasksRecycler = findViewById(R.id.groupTasksRecycler);
+        filesRecycler = findViewById(R.id.groupFilesRecycler);
 
-        // Setup Tasks
-        taskList = new ArrayList<>();
         taskAdapter = new TaskAdapter(taskList, this);
         tasksRecycler.setLayoutManager(new LinearLayoutManager(this));
         tasksRecycler.setAdapter(taskAdapter);
 
-        // Setup Files
-        fileList = new ArrayList<>();
         fileAdapter = new FileAdapter(fileList, this);
         filesRecycler.setLayoutManager(new LinearLayoutManager(this));
         filesRecycler.setAdapter(fileAdapter);
 
-        addTask.setOnClickListener(v -> startActivity(new Intent(Home.this, AddTask.class)));
-        FileBtn.setOnClickListener(v -> startActivity(new Intent(Home.this, AddFile.class)));
-        deleteAllBtn.setOnClickListener(v -> showDeleteAllConfirmation());
+        findViewById(R.id.addGroupTaskFab).setOnClickListener(v -> {
+            Intent intent = new Intent(this, AddTask.class);
+            intent.putExtra("groupId", group.groupId);
+            startActivity(intent);
+        });
+
+        findViewById(R.id.addGroupFileBtn).setOnClickListener(v -> {
+            Intent intent = new Intent(this, AddFile.class);
+            intent.putExtra("groupId", group.groupId);
+            startActivity(intent);
+        });
 
         setupRealtimeListeners();
     }
@@ -136,29 +129,23 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.menu_my_tasks) {
-            // Already here
+            startActivity(new Intent(this, Home.class));
+            finish();
         } else if (id == R.id.menu_group_tasks) {
             startActivity(new Intent(this, GroupsActivity.class));
+            finish();
         } else if (id == R.id.menu_logout) {
-            logout();
+            auth.signOut();
+            startActivity(new Intent(this, LogIn.class));
+            finish();
         }
 
         drawerLayout.closeDrawer(GravityCompat.START);
         return true;
     }
 
-    private void logout() {
-        auth.signOut();
-        startActivity(new Intent(Home.this, LogIn.class));
-        finish();
-    }
-
     private void setupRealtimeListeners() {
-        FirebaseUser user = auth.getCurrentUser();
-        if (user == null) return;
-        String userId = user.getUid();
-
-        taskListener = db.collection("tasks").whereEqualTo("userId", userId)
+        taskListener = db.collection("tasks").whereEqualTo("groupId", group.groupId)
                 .addSnapshotListener((value, error) -> {
                     if (value != null) {
                         taskList.clear();
@@ -171,7 +158,7 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
                     }
                 });
 
-        fileListener = db.collection("files").whereEqualTo("userId", userId)
+        fileListener = db.collection("files").whereEqualTo("groupId", group.groupId)
                 .addSnapshotListener((value, error) -> {
                     if (value != null) {
                         fileList.clear();
@@ -185,35 +172,12 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
                 });
     }
 
-    private void showDeleteAllConfirmation() {
-        new AlertDialog.Builder(this)
-                .setTitle("Delete All")
-                .setMessage("Are you sure you want to delete everything?")
-                .setPositiveButton("Yes", (dialog, which) -> {
-                    FirebaseUser user = auth.getCurrentUser();
-                    if (user == null) return;
-                    String userId = user.getUid();
-                    WriteBatch batch = db.batch();
-
-                    db.collection("tasks").whereEqualTo("userId", userId).get().addOnSuccessListener(query -> {
-                        for (QueryDocumentSnapshot doc : query) batch.delete(doc.getReference());
-                        db.collection("files").whereEqualTo("userId", userId).get().addOnSuccessListener(queryFiles -> {
-                            for (QueryDocumentSnapshot doc : queryFiles) batch.delete(doc.getReference());
-                            batch.commit().addOnSuccessListener(aVoid ->
-                                Toast.makeText(Home.this, "Everything deleted", Toast.LENGTH_SHORT).show());
-                        });
-                    });
-                })
-                .setNegativeButton("No", null)
-                .show();
-    }
-
     @Override
     public void onFileClick(TaskFile taskFile) {
         FileTasksFragment fragment = FileTasksFragment.newInstance(taskFile.fileName, taskFile.tasks, taskFile.docId);
         getSupportFragmentManager().beginTransaction()
                 .setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out)
-                .replace(R.id.fragmentContainer, fragment)
+                .replace(R.id.groupFragmentContainer, fragment)
                 .addToBackStack(null)
                 .commit();
     }
@@ -221,7 +185,7 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
     @Override
     public void onAddTaskToFileClick(TaskFile taskFile) {
         if (taskList.isEmpty()) {
-            Toast.makeText(this, "No tasks available to add", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "No tasks available in group", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -238,44 +202,37 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
                 .show();
     }
 
-    @Override
-    public void onDeleteFileClick(TaskFile taskFile) {
-        db.collection("files").document(taskFile.docId).delete()
-                .addOnSuccessListener(aVoid -> Toast.makeText(this, "File deleted", Toast.LENGTH_SHORT).show());
-    }
-
     private void addTaskToTaskFile(TaskFile file, Task task) {
         if (file.tasks == null) file.tasks = new ArrayList<>();
-        
         for (Task t : file.tasks) {
-            if (t.docId.equals(task.docId)) {
-                Toast.makeText(this, "Task already in file", Toast.LENGTH_SHORT).show();
+            if (t.docId != null && t.docId.equals(task.docId)) {
+                Toast.makeText(this, "Already in file", Toast.LENGTH_SHORT).show();
                 return;
             }
         }
-
         file.tasks.add(task);
-        db.collection("files").document(file.docId).set(file)
-                .addOnSuccessListener(aVoid -> Toast.makeText(this, "Task added", Toast.LENGTH_SHORT).show());
+        db.collection("files").document(file.docId).set(file);
+    }
+
+    @Override
+    public void onDeleteFileClick(TaskFile taskFile) {
+        db.collection("files").document(taskFile.docId).delete();
     }
 
     @Override
     public void onTaskCompletedToggle(Task task) {
         task.completed = !task.completed;
         db.collection("tasks").document(task.docId).update("completed", task.completed);
-        
         for (TaskFile file : fileList) {
             if (file.tasks != null) {
                 boolean updated = false;
                 for (Task t : file.tasks) {
-                    if (t.docId.equals(task.docId)) {
+                    if (t.docId != null && t.docId.equals(task.docId)) {
                         t.completed = task.completed;
                         updated = true;
                     }
                 }
-                if (updated) {
-                    db.collection("files").document(file.docId).set(file);
-                }
+                if (updated) db.collection("files").document(file.docId).set(file);
             }
         }
     }
@@ -283,20 +240,17 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
     @Override
     public void onTaskDelete(Task task) {
         db.collection("tasks").document(task.docId).delete();
-
         for (TaskFile file : fileList) {
             if (file.tasks != null) {
                 boolean removed = false;
                 for (int i = 0; i < file.tasks.size(); i++) {
-                    if (file.tasks.get(i).docId.equals(task.docId)) {
+                    if (file.tasks.get(i).docId != null && file.tasks.get(i).docId.equals(task.docId)) {
                         file.tasks.remove(i);
                         removed = true;
                         break;
                     }
                 }
-                if (removed) {
-                    db.collection("files").document(file.docId).set(file);
-                }
+                if (removed) db.collection("files").document(file.docId).set(file);
             }
         }
     }

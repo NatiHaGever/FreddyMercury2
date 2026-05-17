@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/menu_my_tasks"
+            android:icon="@android:drawable/ic_menu_edit"
+            android:title="My Tasks" />
+        <item
+            android:id="@+id/menu_group_tasks"
+            android:icon="@android:drawable/ic_menu_mylocation"
+            android:title="Group Tasks" />
+    </group>
+    <item android:title="Account">
+        <menu>
+            <item
+                android:id="@+id/menu_logout"
+                android:icon="@android:drawable/ic_lock_power_off"
+                android:title="Log Out" />
+        </menu>
+    </item>
+</menu>

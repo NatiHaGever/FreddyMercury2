@@ -25,106 +25,77 @@
             android:layout_below="@id/toolbar"
             android:padding="16dp">
 
-            <!-- Header Section -->
             <TextView
-                android:id="@+id/todayDateText"
+                android:id="@+id/groupTitleText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_alignParentStart="true"
-                android:layout_alignParentTop="true"
-                android:textSize="18sp"
+                android:text="Group Name"
+                android:textSize="22sp"
                 android:textStyle="bold" />
 
-            <!-- Main Content Container: Stacks Files and Tasks vertically -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_above="@+id/bottomControls"
-                android:layout_below="@id/todayDateText"
+                android:layout_above="@+id/bottomControlBar"
+                android:layout_below="@id/groupTitleText"
                 android:layout_marginTop="16dp"
                 android:orientation="vertical">
 
-                <!-- Files Section -->
-                <LinearLayout
-                    android:layout_width="match_parent"
+                <TextView
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Files"
-                        android:textSize="20sp"
-                        android:textStyle="bold" />
-
-                    <Button
-                        android:id="@+id/FileBtn"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Add File" />
-                </LinearLayout>
+                    android:text="Group Files"
+                    android:textStyle="bold" />
 
                 <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/filesRecycler"
+                    android:id="@+id/groupFilesRecycler"
                     android:layout_width="match_parent"
-                    android:layout_height="200dp"
-                    android:layout_marginTop="8dp" />
+                    android:layout_height="200dp" />
 
-                <!-- Tasks Section -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:text="Tasks"
-                    android:textSize="20sp"
+                    android:text="Group Tasks"
                     android:textStyle="bold" />
 
                 <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/tasksRecycler"
+                    android:id="@+id/groupTasksRecycler"
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
-                    android:layout_marginTop="8dp"
                     android:layout_weight="1" />
             </LinearLayout>
 
-            <!-- Bottom Controls -->
             <RelativeLayout
-                android:id="@+id/bottomControls"
+                android:id="@+id/bottomControlBar"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_alignParentBottom="true">
 
                 <Button
-                    android:id="@+id/deleteAllBtn"
+                    android:id="@+id/addGroupFileBtn"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_alignParentStart="true"
-                    android:layout_centerVertical="true"
-                    android:text="Delete All" />
+                    android:text="Add File" />
 
                 <com.google.android.material.floatingactionbutton.FloatingActionButton
-                    android:id="@+id/addTaskFab"
+                    android:id="@+id/addGroupTaskFab"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_alignParentEnd="true"
-                    android:layout_centerVertical="true"
-                    android:layout_margin="8dp"
-                    android:contentDescription="Add task"
                     app:srcCompat="@android:drawable/ic_input_add" />
             </RelativeLayout>
 
-            <!-- Fragment Container -->
             <FrameLayout
-                android:id="@+id/fragmentContainer"
+                android:id="@+id/groupFragmentContainer"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:elevation="10dp" />
         </RelativeLayout>
     </RelativeLayout>
 
-    <!-- Side Menu (Navigation View) -->
+    <!-- Side Menu -->
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/nav_view"
         android:layout_width="wrap_content"

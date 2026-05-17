@@ -1,11 +1,7 @@
 package com.example.freddymercury;
 
-
-
 import android.app.DatePickerDialog;
-import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -21,13 +17,12 @@ import java.util.Calendar;
 public class AddTask extends AppCompatActivity {
 
     EditText taskTitleInput;
-
     TextView dueDateText;
     Button saveTaskBtn;
     EditText taskDescription;
 
-
     String selectedDate = "";
+    String groupId = null;
 
     FirebaseFirestore db;
     FirebaseAuth auth;
@@ -36,7 +31,10 @@ public class AddTask extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_task);
-        taskDescription=findViewById(R.id.editDescription);
+        
+        groupId = getIntent().getStringExtra("groupId");
+
+        taskDescription = findViewById(R.id.editDescription);
         taskTitleInput = findViewById(R.id.taskTitleInput);
         dueDateText = findViewById(R.id.dueDateText);
         saveTaskBtn = findViewById(R.id.saveTaskBtn);
@@ -45,13 +43,11 @@ public class AddTask extends AppCompatActivity {
         auth = FirebaseAuth.getInstance();
 
         dueDateText.setOnClickListener(v -> showDatePicker());
-
         saveTaskBtn.setOnClickListener(v -> saveTask());
     }
 
     private void showDatePicker() {
         Calendar c = Calendar.getInstance();
-
         new DatePickerDialog(this,
                 (view, year, month, day) -> {
                     selectedDate = day + "/" + (month + 1) + "/" + year;
@@ -63,13 +59,6 @@ public class AddTask extends AppCompatActivity {
         ).show();
     }
 
-
-
-
-
-
-
-
     private void saveTask() {
         String title = taskTitleInput.getText().toString().trim();
         String desc = taskDescription.getText().toString().trim();
@@ -79,20 +68,18 @@ public class AddTask extends AppCompatActivity {
         }
 
         String userId = auth.getCurrentUser().getUid();
-        Task task = new Task(title, selectedDate, userId,desc);
+        Task task = new Task(title, selectedDate, userId, desc);
+        if (groupId != null) {
+            task.groupId = groupId;
+        }
 
         db.collection("tasks")
                 .add(task)
                 .addOnSuccessListener(doc -> {
                     Toast.makeText(this, "Task saved", Toast.LENGTH_SHORT).show();
-                    finish();
+                    finish(); // This correctly takes you back to the Group Details screen
                 })
                 .addOnFailureListener(e ->
                         Toast.makeText(this, "Error saving task", Toast.LENGTH_SHORT).show());
-        Intent intent = new Intent(AddTask.this, Home.class);
-        startActivity(intent);
     }
-
-
-
 }

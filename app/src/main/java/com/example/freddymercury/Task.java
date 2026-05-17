@@ -10,6 +10,7 @@ public class Task implements Serializable {
     public String description;
     public boolean completed;
     public String docId;
+    public String groupId; // New field for shared tasks
 
     public Task() {}
 
@@ -20,5 +21,6 @@ public class Task implements Serializable {
         this.completed = false;
         this.description = description;
         this.docId = "";
+        this.groupId = null; // Default to personal
     }
 }
