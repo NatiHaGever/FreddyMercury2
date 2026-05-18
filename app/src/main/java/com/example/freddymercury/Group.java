@@ -1,9 +1,11 @@
 package com.example.freddymercury;
 
+import androidx.annotation.Keep;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-
+@Keep
 public class Group implements Serializable {
     public String groupId;
     public String groupName;

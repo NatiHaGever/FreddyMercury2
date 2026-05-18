@@ -3,6 +3,7 @@ package com.example.freddymercury;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.InputType;
+import android.util.Log;
 import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.EditText;
@@ -164,7 +165,6 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
 
     private void createGroup(String name) {
         String groupId = UUID.randomUUID().toString();
-        // Generate a cleaner 6-digit code
         String groupCode = groupId.replace("-", "").substring(0, 6).toUpperCase();
         String adminId = auth.getCurrentUser().getUid();
         Group newGroup = new Group(groupId, name, groupCode, adminId);
@@ -190,29 +190,53 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
 
     private void joinGroup(String code) {
         FirebaseUser user = auth.getCurrentUser();
-        if (user == null) return;
+        if (user == null) {
+            Log.e("GroupDebug", "No authenticated user session found!");
+            return;
+        }
         String userId = user.getUid();
 
-        // Search for the group with the matching code
-        db.collection("groups").whereEqualTo("groupCode", code).get()
+        // 1. Process code via a local temporary variable
+        String tempCode = code.toUpperCase().trim();
+        if (tempCode.startsWith("CODE:")) {
+            tempCode = tempCode.replace("CODE:", "").trim();
+        }
+
+        // 2. Lock it into a final variable so lambdas can safely compile
+        final String cleanCode = tempCode;
+        Log.d("GroupDebug", "Querying Firestore for code: '" + cleanCode + "'");
+
+        db.collection("groups").whereEqualTo("groupCode", cleanCode).get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
+                    Log.d("GroupDebug", "Response received. Document match count: " + queryDocumentSnapshots.size());
+
                     if (!queryDocumentSnapshots.isEmpty()) {
                         for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
                             Group group = doc.toObject(Group.class);
-                            if (group.members.contains(userId)) {
+
+                            if (group.members != null && group.members.contains(userId)) {
                                 Toast.makeText(this, "Already a member", Toast.LENGTH_SHORT).show();
                             } else {
-                                // Correctly update the members list in Firestore
                                 db.collection("groups").document(doc.getId())
                                         .update("members", FieldValue.arrayUnion(userId))
-                                        .addOnSuccessListener(aVoid -> Toast.makeText(this, "Joined Group!", Toast.LENGTH_SHORT).show())
-                                        .addOnFailureListener(e -> Toast.makeText(this, "Join failed", Toast.LENGTH_SHORT).show());
+                                        .addOnSuccessListener(aVoid -> {
+                                            Log.d("GroupDebug", "Successfully appended User UID to array.");
+                                            Toast.makeText(this, "Joined Group!", Toast.LENGTH_SHORT).show();
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            Log.e("GroupDebug", "Failed to update array: ", e);
+                                            Toast.makeText(this, "Join failed", Toast.LENGTH_SHORT).show();
+                                        });
                             }
                         }
                     } else {
-                        Toast.makeText(this, "Invalid Code: " + code, Toast.LENGTH_SHORT).show();
+                        Log.w("GroupDebug", "Firestore returned empty records for code: " + cleanCode);
+                        Toast.makeText(this, "Invalid Code: " + cleanCode, Toast.LENGTH_SHORT).show();
                     }
                 })
-                .addOnFailureListener(e -> Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                .addOnFailureListener(e -> {
+                    Log.e("GroupDebug", "Query failed completely: ", e);
+                    Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
     }
 }
