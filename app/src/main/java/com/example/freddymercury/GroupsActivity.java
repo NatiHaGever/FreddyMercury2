@@ -2,7 +2,6 @@ package com.example.freddymercury;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.text.InputType;
 import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.EditText;
@@ -51,14 +50,12 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
-        // --- Toolbar Setup ---
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setTitle("Group Tasks");
         }
 
-        // --- Side Menu (Navigation Drawer) Setup ---
         drawerLayout = findViewById(R.id.drawer_layout);
         NavigationView navigationView = findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
@@ -68,7 +65,6 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
 
-        // Update header info
         FirebaseUser user = auth.getCurrentUser();
         if (user != null) {
             String email = user.getEmail();
@@ -76,7 +72,6 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
             if (emailText != null) emailText.setText(email);
         }
 
-        // Modern way to handle back press
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
@@ -115,12 +110,9 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
         if (id == R.id.menu_my_tasks) {
             startActivity(new Intent(this, Home.class));
             finish();
-        } else if (id == R.id.menu_group_tasks) {
-            // Already here
         } else if (id == R.id.menu_logout) {
             logout();
         }
-
         drawerLayout.closeDrawer(GravityCompat.START);
         return true;
     }
@@ -163,22 +155,25 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
     }
 
     private void createGroup(String name) {
-        String groupId = UUID.randomUUID().toString();
-        // Generate a cleaner 6-digit code
-        String groupCode = groupId.replace("-", "").substring(0, 6).toUpperCase();
-        String adminId = auth.getCurrentUser().getUid();
-        Group newGroup = new Group(groupId, name, groupCode, adminId);
-        db.collection("groups").document(groupId).set(newGroup)
-                .addOnSuccessListener(aVoid -> Toast.makeText(this, "Group Created! Code: " + groupCode, Toast.LENGTH_LONG).show())
-                .addOnFailureListener(e -> Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+        if (auth.getCurrentUser() == null) return;
+        String userId = auth.getCurrentUser().getUid();
+
+        // Generate document ID first to explicitly match internal property
+        String customGroupId = db.collection("groups").document().getId();
+        String groupCode = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+
+        Group newGroup = new Group(customGroupId, name, groupCode, userId);
+
+        db.collection("groups").document(customGroupId).set(newGroup)
+                .addOnSuccessListener(aVoid -> Toast.makeText(this, "Group Created!", Toast.LENGTH_SHORT).show())
+                .addOnFailureListener(e -> Toast.makeText(this, "Failed to create group", Toast.LENGTH_SHORT).show());
     }
 
     private void showJoinGroupDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Join Group");
         final EditText input = new EditText(this);
-        input.setHint("Enter Group Code");
-        input.setInputType(InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS);
+        input.setHint("Enter 6-digit Group Code");
         builder.setView(input);
         builder.setPositiveButton("Join", (dialog, which) -> {
             String code = input.getText().toString().trim().toUpperCase();
@@ -189,30 +184,24 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
     }
 
     private void joinGroup(String code) {
-        FirebaseUser user = auth.getCurrentUser();
-        if (user == null) return;
-        String userId = user.getUid();
+        if (auth.getCurrentUser() == null) return;
+        String userId = auth.getCurrentUser().getUid();
 
-        // Search for the group with the matching code
         db.collection("groups").whereEqualTo("groupCode", code).get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    if (!queryDocumentSnapshots.isEmpty()) {
-                        for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                            Group group = doc.toObject(Group.class);
-                            if (group.members.contains(userId)) {
-                                Toast.makeText(this, "Already a member", Toast.LENGTH_SHORT).show();
-                            } else {
-                                // Correctly update the members list in Firestore
-                                db.collection("groups").document(doc.getId())
-                                        .update("members", FieldValue.arrayUnion(userId))
-                                        .addOnSuccessListener(aVoid -> Toast.makeText(this, "Joined Group!", Toast.LENGTH_SHORT).show())
-                                        .addOnFailureListener(e -> Toast.makeText(this, "Join failed", Toast.LENGTH_SHORT).show());
-                            }
-                        }
+                .addOnSuccessListener(querySnapshot -> {
+                    if (!querySnapshot.isEmpty()) {
+                        QueryDocumentSnapshot doc = (QueryDocumentSnapshot) querySnapshot.getDocuments().get(0);
+                        String targetGroupId = doc.getId();
+
+                        // Use arrayUnion to push member without overwriting existing data
+                        db.collection("groups").document(targetGroupId)
+                                .update("members", FieldValue.arrayUnion(userId))
+                                .addOnSuccessListener(aVoid -> Toast.makeText(GroupsActivity.this, "Joined successfully!", Toast.LENGTH_SHORT).show())
+                                .addOnFailureListener(e -> Toast.makeText(GroupsActivity.this, "Error joining group", Toast.LENGTH_SHORT).show());
                     } else {
-                        Toast.makeText(this, "Invalid Code: " + code, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Invalid group code!", Toast.LENGTH_SHORT).show();
                     }
                 })
-                .addOnFailureListener(e -> Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                .addOnFailureListener(e -> Toast.makeText(this, "Search failed", Toast.LENGTH_SHORT).show());
     }
 }

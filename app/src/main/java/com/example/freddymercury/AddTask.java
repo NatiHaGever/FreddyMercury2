@@ -2,6 +2,7 @@ package com.example.freddymercury;
 
 import android.app.DatePickerDialog;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -31,8 +32,10 @@ public class AddTask extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_task);
-        
+
+        // Extract the group identifier passed from GroupDetailsActivity
         groupId = getIntent().getStringExtra("groupId");
+        Log.d("TaskDebug", "AddTask opened with Group ID: " + groupId);
 
         taskDescription = findViewById(R.id.editDescription);
         taskTitleInput = findViewById(R.id.taskTitleInput);
@@ -62,24 +65,42 @@ public class AddTask extends AppCompatActivity {
     private void saveTask() {
         String title = taskTitleInput.getText().toString().trim();
         String desc = taskDescription.getText().toString().trim();
+
         if (title.isEmpty() || selectedDate.isEmpty()) {
             Toast.makeText(this, "Fill all fields", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        String userId = auth.getCurrentUser().getUid();
-        Task task = new Task(title, selectedDate, userId, desc);
-        if (groupId != null) {
-            task.groupId = groupId;
+        if (auth.getCurrentUser() == null) {
+            Toast.makeText(this, "User session not found!", Toast.LENGTH_SHORT).show();
+            return;
         }
 
+        String userId = auth.getCurrentUser().getUid();
+
+        // 1. Construct the basic task instance data
+        Task task = new Task(title, selectedDate, userId, desc);
+
+        // 2. Explicitly stamp the task with the target Group ID if available
+        if (groupId != null && !groupId.isEmpty()) {
+            task.groupId = groupId;
+            Log.d("TaskDebug", "Stamping task with Group ID: " + groupId);
+        } else {
+            task.groupId = "personal";
+            Log.w("TaskDebug", "No Group ID found. Task marked as personal.");
+        }
+
+        // 3. Write data to the global "tasks" collection tree
         db.collection("tasks")
                 .add(task)
                 .addOnSuccessListener(doc -> {
+                    Log.d("TaskDebug", "Task document saved successfully with ID: " + doc.getId());
                     Toast.makeText(this, "Task saved", Toast.LENGTH_SHORT).show();
-                    finish(); // This correctly takes you back to the Group Details screen
+                    finish(); // Exits activity and returns to GroupDetailsActivity
                 })
-                .addOnFailureListener(e ->
-                        Toast.makeText(this, "Error saving task", Toast.LENGTH_SHORT).show());
+                .addOnFailureListener(e -> {
+                    Log.e("TaskDebug", "Error writing task to Firestore: ", e);
+                    Toast.makeText(this, "Error saving task", Toast.LENGTH_SHORT).show();
+                });
     }
 }

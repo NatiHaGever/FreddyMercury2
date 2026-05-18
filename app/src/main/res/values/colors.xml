@@ -1,5 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <!-- Brand Palette -->
+    <color name="colorPrimary">#1B4332</color>      <!-- Dark Forest Green -->
+    <color name="colorPrimaryDark">#081C15</color>  <!-- Deep Midnight Green -->
+    <color name="colorAccent">#2D6A4F</color>        <!-- Vibrant Emerald Green -->
+
+    <!-- UI Semantics -->
+    <color name="bg_light">#F4F6F4</color>           <!-- Light Gray-Green tint surface -->
+    <color name="surface_card">#FFFFFF</color>
+    <color name="text_primary">#1E293B</color>
+    <color name="text_muted">#64748B</color>
+
+    <!-- State Highlights -->
+    <color name="task_done_bg">#E8F5E9</color>       <!-- Highly visible soft green accent -->
+    <color name="task_done_border">#4CAF50</color>   <!-- Vibrant status green -->
+    <color name="danger_red">#D32F2F</color>
 </resources>

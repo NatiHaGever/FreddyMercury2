@@ -3,9 +3,9 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/bg_light">
 
-    <!-- Main Content -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
@@ -14,7 +14,7 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorPrimary"
+            android:background="@color/colorPrimary"
             app:titleTextColor="#FFFFFF"
             android:elevation="4dp"
             app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
@@ -25,26 +25,36 @@
             android:layout_below="@id/toolbar"
             android:padding="16dp">
 
-            <!-- Header Section -->
-            <TextView
-                android:id="@+id/todayDateText"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:id="@+id/homeHeader"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_alignParentStart="true"
-                android:layout_alignParentTop="true"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-            <!-- Main Content Container: Stacks Files and Tasks vertically -->
+                <ImageView
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@drawable/do_it_"
+                    android:layout_marginEnd="12dp"/>
+
+                <TextView
+                    android:id="@+id/todayDateText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_primary"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_above="@+id/bottomControls"
-                android:layout_below="@id/todayDateText"
+                android:layout_below="@id/homeHeader"
                 android:layout_marginTop="16dp"
                 android:orientation="vertical">
 
-                <!-- Files Section -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -55,30 +65,33 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Files"
-                        android:textSize="20sp"
+                        android:text="Personal Files"
+                        android:textColor="@color/text_primary"
+                        android:textSize="18sp"
                         android:textStyle="bold" />
 
                     <Button
                         android:id="@+id/FileBtn"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Add File" />
+                        android:backgroundTint="@color/colorAccent"
+                        android:text="Add File"
+                        android:textColor="#FFFFFF" />
                 </LinearLayout>
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/filesRecycler"
                     android:layout_width="match_parent"
-                    android:layout_height="200dp"
+                    android:layout_height="180dp"
                     android:layout_marginTop="8dp" />
 
-                <!-- Tasks Section -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:text="Tasks"
-                    android:textSize="20sp"
+                    android:text="Personal Tasks"
+                    android:textColor="@color/text_primary"
+                    android:textSize="18sp"
                     android:textStyle="bold" />
 
                 <androidx.recyclerview.widget.RecyclerView
@@ -89,12 +102,12 @@
                     android:layout_weight="1" />
             </LinearLayout>
 
-            <!-- Bottom Controls -->
             <RelativeLayout
                 android:id="@+id/bottomControls"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_alignParentBottom="true">
+                android:layout_alignParentBottom="true"
+                android:paddingTop="8dp">
 
                 <Button
                     android:id="@+id/deleteAllBtn"
@@ -102,7 +115,9 @@
                     android:layout_height="wrap_content"
                     android:layout_alignParentStart="true"
                     android:layout_centerVertical="true"
-                    android:text="Delete All" />
+                    android:backgroundTint="@color/danger_red"
+                    android:text="Delete All"
+                    android:textColor="#FFFFFF" />
 
                 <com.google.android.material.floatingactionbutton.FloatingActionButton
                     android:id="@+id/addTaskFab"
@@ -110,12 +125,12 @@
                     android:layout_height="wrap_content"
                     android:layout_alignParentEnd="true"
                     android:layout_centerVertical="true"
-                    android:layout_margin="8dp"
+                    android:backgroundTint="@color/colorPrimary"
+                    app:tint="#FFFFFF"
                     android:contentDescription="Add task"
                     app:srcCompat="@android:drawable/ic_input_add" />
             </RelativeLayout>
 
-            <!-- Fragment Container -->
             <FrameLayout
                 android:id="@+id/fragmentContainer"
                 android:layout_width="match_parent"
@@ -124,7 +139,6 @@
         </RelativeLayout>
     </RelativeLayout>
 
-    <!-- Side Menu (Navigation View) -->
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/nav_view"
         android:layout_width="wrap_content"

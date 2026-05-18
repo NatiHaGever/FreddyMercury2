@@ -4,16 +4,29 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp"
-    android:background="#FFFFFF">
+    android:background="@color/bg_light">
 
-    <TextView
-        android:id="@+id/fragmentFileTitle"
-        android:layout_width="wrap_content"
+    <RelativeLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="File Tasks"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="16dp"/>
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:id="@+id/fragmentFileTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Folder Directory Tasks"
+            android:textColor="@color/text_primary"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_alignParentStart="true" />
+
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/do_it_"
+            android:layout_alignParentEnd="true" />
+    </RelativeLayout>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/fragmentTasksRecycler"
@@ -25,7 +38,8 @@
         android:id="@+id/closeFragmentBtn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Close"
-        android:layout_marginTop="8dp" />
-
+        android:backgroundTint="@color/colorPrimary"
+        android:text="Close Drawer"
+        android:textColor="#FFFFFF"
+        android:layout_marginTop="12dp" />
 </LinearLayout>

@@ -3,9 +3,9 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/bg_light">
 
-    <!-- Main Content -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
@@ -14,7 +14,7 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorPrimary"
+            android:background="@color/colorPrimary"
             app:titleTextColor="#FFFFFF"
             android:elevation="4dp"
             app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
@@ -25,19 +25,34 @@
             android:layout_below="@id/toolbar"
             android:padding="16dp">
 
-            <TextView
-                android:id="@+id/groupsTitle"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:id="@+id/titleGroup"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="My Groups"
-                android:textSize="24sp"
-                android:textStyle="bold" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@drawable/do_it_"
+                    android:layout_marginEnd="12dp"/>
+
+                <TextView
+                    android:id="@+id/groupsTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="My Groups"
+                    android:textColor="@color/text_primary"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/groupsRecycler"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_below="@id/groupsTitle"
+                android:layout_below="@id/titleGroup"
                 android:layout_marginTop="16dp"
                 android:layout_above="@+id/groupButtons" />
 
@@ -46,6 +61,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_alignParentBottom="true"
+                android:paddingTop="8dp"
                 android:orientation="horizontal">
 
                 <Button
@@ -53,19 +69,23 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Create Group" />
+                    android:layout_marginEnd="8dp"
+                    android:backgroundTint="@color/colorPrimary"
+                    android:text="Create Group"
+                    android:textColor="#FFFFFF"/>
 
                 <Button
                     android:id="@+id/joinGroupBtn"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Join Group" />
+                    android:backgroundTint="@color/colorAccent"
+                    android:text="Join Group"
+                    android:textColor="#FFFFFF"/>
             </LinearLayout>
         </RelativeLayout>
     </RelativeLayout>
 
-    <!-- Side Menu -->
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/nav_view"
         android:layout_width="wrap_content"

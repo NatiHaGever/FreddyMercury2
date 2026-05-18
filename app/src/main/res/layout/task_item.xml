@@ -1,49 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/itemContainer"
     android:orientation="vertical"
-    android:padding="12dp"
+    android:padding="16dp"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="#EEEEEE"
-    android:layout_marginBottom="8dp">
+    android:background="@android:color/white"
+    android:layout_marginBottom="12dp"
+    android:elevation="2dp">
 
-    <TextView
-        android:id="@+id/taskTitle"
-        android:textSize="18sp"
-        android:textStyle="bold"
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:id="@+id/taskTitle"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_toStartOf="@+id/statusBadge"/>
+
+        <TextView
+            android:id="@+id/statusBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:text="DONE"
+            android:textStyle="bold"
+            android:textColor="@color/task_done_border"
+            android:background="#D1E7DD"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="4dp"
+            android:textSize="12sp"
+            android:visibility="gone"/>
+    </RelativeLayout>
 
     <TextView
         android:id="@+id/taskDate"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:textColor="@color/text_muted"
+        android:textSize="13sp"
         android:layout_marginTop="4dp"/>
 
     <TextView
         android:id="@+id/Description"
-        android:textSize="16sp"
-        android:textStyle="bold"
+        android:textSize="15sp"
+        android:textColor="@color/text_primary"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" />
 
     <LinearLayout
         android:orientation="horizontal"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp">
+        android:layout_marginTop="12dp"
+        android:gravity="end">
 
         <Button
             android:id="@+id/completedBtn"
-            android:text="Done"
+            android:text="Complete"
+            style="?android:attr/buttonStyleSmall"
+            android:backgroundTint="@color/colorAccent"
+            android:textColor="#FFFFFF"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
 
         <Button
             android:id="@+id/deleteBtn"
             android:text="Delete"
+            style="?android:attr/buttonStyleSmall"
+            android:backgroundTint="@color/danger_red"
+            android:textColor="#FFFFFF"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"/>
     </LinearLayout>
-
 </LinearLayout>

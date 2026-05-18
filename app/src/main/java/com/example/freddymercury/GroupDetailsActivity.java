@@ -21,6 +21,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -35,12 +36,13 @@ public class GroupDetailsActivity extends AppCompatActivity implements FileAdapt
     private RecyclerView tasksRecycler, filesRecycler;
     private TaskAdapter taskAdapter;
     private FileAdapter fileAdapter;
-    private List<Task> taskList = new ArrayList<>();
-    private List<TaskFile> fileList = new ArrayList<>();
+    private final List<Task> taskList = new ArrayList<>();
+    private final List<TaskFile> fileList = new ArrayList<>();
 
     private FirebaseFirestore db;
+    private java.lang.String currentUserId;
     private FirebaseAuth auth;
-    private ListenerRegistration taskListener, fileListener;
+    private ListenerRegistration groupMetaListener, taskListener, fileListener;
 
     private DrawerLayout drawerLayout;
 
@@ -50,7 +52,8 @@ public class GroupDetailsActivity extends AppCompatActivity implements FileAdapt
         setContentView(R.layout.activity_group_details);
 
         group = (Group) getIntent().getSerializableExtra("group");
-        if (group == null) {
+        if (group == null || group.groupId == null) {
+            Toast.makeText(this, "Error: Invalid Group Metadata", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
@@ -58,14 +61,17 @@ public class GroupDetailsActivity extends AppCompatActivity implements FileAdapt
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
-        // --- Toolbar Setup ---
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle(group.groupName);
+        FirebaseUser user = auth.getCurrentUser();
+        if (user != null) {
+            currentUserId = user.getUid();
+        } else {
+            finish();
+            return;
         }
 
-        // --- Side Menu (Navigation Drawer) Setup ---
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
         drawerLayout = findViewById(R.id.drawer_layout);
         NavigationView navigationView = findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
@@ -75,15 +81,10 @@ public class GroupDetailsActivity extends AppCompatActivity implements FileAdapt
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
 
-        // Update header info
-        FirebaseUser user = auth.getCurrentUser();
-        if (user != null) {
-            String email = user.getEmail();
-            TextView emailText = navigationView.getHeaderView(0).findViewById(R.id.userEmailText);
-            if (emailText != null) emailText.setText(email);
-        }
+        String email = user.getEmail();
+        TextView emailText = navigationView.getHeaderView(0).findViewById(R.id.userEmailText);
+        if (emailText != null) emailText.setText(email);
 
-        // Fix: Handle back press correctly to prevent crash
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
@@ -122,6 +123,12 @@ public class GroupDetailsActivity extends AppCompatActivity implements FileAdapt
             startActivity(intent);
         });
 
+        // NEW: Leave Group Button Hook (Make sure to add this ID to your layout XML file!)
+        Button leaveGroupBtn = findViewById(R.id.leaveGroupBtn);
+        if (leaveGroupBtn != null) {
+            leaveGroupBtn.setOnClickListener(v -> showLeaveGroupConfirmationDialog());
+        }
+
         setupRealtimeListeners();
     }
 
@@ -139,12 +146,61 @@ public class GroupDetailsActivity extends AppCompatActivity implements FileAdapt
             startActivity(new Intent(this, LogIn.class));
             finish();
         }
-
         drawerLayout.closeDrawer(GravityCompat.START);
         return true;
     }
 
+    // NEW: Handles the confirmation dialog and checks admin privilege rules
+    private void showLeaveGroupConfirmationDialog() {
+        boolean isAdmin = currentUserId.equals(group.adminId);
+        String title = isAdmin ? "Delete Group Permanent?" : "Leave Group";
+        String message = isAdmin
+                ? "As the creator/admin, leaving will delete this group and all its tasks permanently for everyone. Proceed?"
+                : "Are you sure you want to leave this group? You won't see these tasks anymore.";
+
+        new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton(isAdmin ? "Delete Permanently" : "Leave Group", (dialog, which) -> handleLeaveGroupLogic(isAdmin))
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    // NEW: Executes backend database tasks safely depending on user privileges
+    private void handleLeaveGroupLogic(boolean isAdmin) {
+        if (isAdmin) {
+            // Delete the entire document if admin drops out
+            db.collection("groups").document(group.groupId).delete()
+                    .addOnSuccessListener(aVoid -> {
+                        Toast.makeText(this, "Group deleted successfully", Toast.LENGTH_SHORT).show();
+                        finish();
+                    })
+                    .addOnFailureListener(e -> Toast.makeText(this, "Failed to delete group", Toast.LENGTH_SHORT).show());
+        } else {
+            // Atomically rip the UID cleanly from array pool
+            db.collection("groups").document(group.groupId)
+                    .update("members", FieldValue.arrayRemove(currentUserId))
+                    .addOnSuccessListener(aVoid -> {
+                        Toast.makeText(this, "You left the group", Toast.LENGTH_SHORT).show();
+                        finish();
+                    })
+                    .addOnFailureListener(e -> Toast.makeText(this, "Failed to leave group", Toast.LENGTH_SHORT).show());
+        }
+    }
+
     private void setupRealtimeListeners() {
+        groupMetaListener = db.collection("groups").document(group.groupId)
+                .addSnapshotListener((snapshot, error) -> {
+                    if (snapshot != null && snapshot.exists()) {
+                        Group updatedGroup = snapshot.toObject(Group.class);
+                        if (updatedGroup != null) {
+                            this.group = updatedGroup;
+                            this.group.groupId = snapshot.getId();
+                            groupTitle.setText(group.groupName + " (" + group.members.size() + " Members)");
+                        }
+                    }
+                });
+
         taskListener = db.collection("tasks").whereEqualTo("groupId", group.groupId)
                 .addSnapshotListener((value, error) -> {
                     if (value != null) {
@@ -196,9 +252,7 @@ public class GroupDetailsActivity extends AppCompatActivity implements FileAdapt
 
         new AlertDialog.Builder(this)
                 .setTitle("Add to " + taskFile.fileName)
-                .setItems(taskTitles, (dialog, which) -> {
-                    addTaskToTaskFile(taskFile, taskList.get(which));
-                })
+                .setItems(taskTitles, (dialog, which) -> addTaskToTaskFile(taskFile, taskList.get(which)))
                 .show();
     }
 
@@ -258,6 +312,7 @@ public class GroupDetailsActivity extends AppCompatActivity implements FileAdapt
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (groupMetaListener != null) groupMetaListener.remove();
         if (taskListener != null) taskListener.remove();
         if (fileListener != null) fileListener.remove();
     }
