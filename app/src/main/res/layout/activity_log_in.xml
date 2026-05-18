@@ -8,10 +8,10 @@
     android:layout_height="match_parent">
 
     <ImageView
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:src="@drawable/do_it_"
-        android:layout_marginBottom="24dp"/>
+        android:layout_width="211dp"
+        android:layout_height="224dp"
+        android:layout_marginBottom="24dp"
+        android:src="@drawable/do_it_" />
 
     <TextView
         android:layout_width="wrap_content"
