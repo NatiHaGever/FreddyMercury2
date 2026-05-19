@@ -7,12 +7,9 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.appcompat.app.AppCompatActivity;
-
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
-
 import java.util.Calendar;
 
 public class AddTask extends AppCompatActivity {
@@ -33,7 +30,6 @@ public class AddTask extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_task);
 
-        // Extract the group identifier passed from GroupDetailsActivity
         groupId = getIntent().getStringExtra("groupId");
         Log.d("TaskDebug", "AddTask opened with Group ID: " + groupId);
 
@@ -78,10 +74,8 @@ public class AddTask extends AppCompatActivity {
 
         String userId = auth.getCurrentUser().getUid();
 
-        // 1. Construct the basic task instance data
         Task task = new Task(title, selectedDate, userId, desc);
 
-        // 2. Explicitly stamp the task with the target Group ID if available
         if (groupId != null && !groupId.isEmpty()) {
             task.groupId = groupId;
             Log.d("TaskDebug", "Stamping task with Group ID: " + groupId);
@@ -90,13 +84,18 @@ public class AddTask extends AppCompatActivity {
             Log.w("TaskDebug", "No Group ID found. Task marked as personal.");
         }
 
-        // 3. Write data to the global "tasks" collection tree
         db.collection("tasks")
                 .add(task)
                 .addOnSuccessListener(doc -> {
                     Log.d("TaskDebug", "Task document saved successfully with ID: " + doc.getId());
+
+                    // --- ADDED: Set the ID and schedule the alarm here ---
+                    task.docId = doc.getId();
+                    NotificationScheduler.scheduleTwoDayAlert(AddTask.this, task);
+                    // -----------------------------------------------------
+
                     Toast.makeText(this, "Task saved", Toast.LENGTH_SHORT).show();
-                    finish(); // Exits activity and returns to GroupDetailsActivity
+                    finish();
                 })
                 .addOnFailureListener(e -> {
                     Log.e("TaskDebug", "Error writing task to Firestore: ", e);
