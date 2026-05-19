@@ -2,7 +2,9 @@ package com.example.freddymercury;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -82,12 +84,26 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
 
-        // Update header info
+        // --- FIXED: Updated to fetch username from Firestore instead of email ---
         FirebaseUser user = auth.getCurrentUser();
         if (user != null) {
-            String email = user.getEmail();
-            TextView emailText = navigationView.getHeaderView(0).findViewById(R.id.userEmailText);
-            if (emailText != null) emailText.setText(email);
+            View headerView = navigationView.getHeaderView(0);
+            TextView usernameText = headerView.findViewById(R.id.usernameText);
+
+            if (usernameText != null) {
+                db.collection("users")
+                        .document(user.getUid())
+                        .get()
+                        .addOnSuccessListener(documentSnapshot -> {
+                            if (documentSnapshot.exists()) {
+                                String loadedUsername = documentSnapshot.getString("username");
+                                if (loadedUsername != null) {
+                                    usernameText.setText(loadedUsername);
+                                }
+                            }
+                        })
+                        .addOnFailureListener(e -> Log.e("HomeHeaderError", "Could not load username for profile panel", e));
+            }
         }
 
         // Modern way to handle back press
@@ -200,7 +216,7 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
                         db.collection("files").whereEqualTo("userId", userId).get().addOnSuccessListener(queryFiles -> {
                             for (QueryDocumentSnapshot doc : queryFiles) batch.delete(doc.getReference());
                             batch.commit().addOnSuccessListener(aVoid ->
-                                Toast.makeText(Home.this, "Everything deleted", Toast.LENGTH_SHORT).show());
+                                    Toast.makeText(Home.this, "Everything deleted", Toast.LENGTH_SHORT).show());
                         });
                     });
                 })
@@ -246,7 +262,7 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
 
     private void addTaskToTaskFile(TaskFile file, Task task) {
         if (file.tasks == null) file.tasks = new ArrayList<>();
-        
+
         for (Task t : file.tasks) {
             if (t.docId.equals(task.docId)) {
                 Toast.makeText(this, "Task already in file", Toast.LENGTH_SHORT).show();
@@ -263,7 +279,7 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
     public void onTaskCompletedToggle(Task task) {
         task.completed = !task.completed;
         db.collection("tasks").document(task.docId).update("completed", task.completed);
-        
+
         for (TaskFile file : fileList) {
             if (file.tasks != null) {
                 boolean updated = false;

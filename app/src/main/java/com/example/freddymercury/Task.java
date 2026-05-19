@@ -11,6 +11,7 @@ public class Task {
     public String description;
     public boolean completed;
     public String groupId;     // <-- MUST BE PUBLIC FOR FIRESTORE MAPS
+    public String imageUrl;    // <-- Added for ImgBB storage URLs
 
     // 1. Required empty constructor for Firestore
     public Task() {
@@ -24,5 +25,6 @@ public class Task {
         this.description = description;
         this.completed = false;
         this.groupId = "";
+        this.imageUrl = ""; // Default to empty string
     }
 }

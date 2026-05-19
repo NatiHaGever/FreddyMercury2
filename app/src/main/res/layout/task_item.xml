@@ -54,6 +54,16 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp" />
 
+    <!-- Added Task Display Element for List Views -->
+    <ImageView
+        android:id="@+id/taskUploadedImage"
+        android:layout_width="match_parent"
+        android:layout_height="140dp"
+        android:scaleType="centerCrop"
+        android:layout_marginTop="8dp"
+        android:background="#FAFAFA"
+        android:visibility="gone"/>
+
     <LinearLayout
         android:orientation="horizontal"
         android:layout_width="match_parent"

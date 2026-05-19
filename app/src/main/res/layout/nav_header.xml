@@ -23,12 +23,13 @@
         android:textStyle="bold"
         android:textColor="#FFFFFF" />
 
+
     <TextView
-        android:id="@+id/userEmailText"
+        android:id="@+id/usernameText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textColor="#B2D8D8"
         android:textSize="14sp"
-        android:text="user@example.com"
+        android:text="Username"
         android:layout_marginTop="2dp"/>
 </LinearLayout>

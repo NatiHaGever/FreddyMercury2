@@ -22,10 +22,11 @@
         android:textStyle="bold"
         android:layout_marginBottom="24dp"/>
 
+    <!-- CHANGED: Swapped emailInput for usernameInput -->
     <EditText
-        android:id="@+id/emailInput"
-        android:hint="Email Address"
-        android:inputType="textEmailAddress"
+        android:id="@+id/usernameInput"
+        android:hint="Username"
+        android:inputType="textPersonName"
         android:padding="14dp"
         android:background="@android:color/white"
         android:layout_marginBottom="16dp"
