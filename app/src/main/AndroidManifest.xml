@@ -20,6 +20,15 @@
         android:theme="@style/Theme.FreddyMercury">
 
         <activity
+            android:name=".ForumActivity"
+            android:exported="false" />
+        <activity
+            android:name=".AddForumPostActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ForumPostDetailActivity"
+            android:exported="false" />
+        <activity
             android:name=".GroupChatActivity"
             android:exported="false"
             android:label="Group Chat" />

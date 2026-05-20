@@ -9,6 +9,10 @@
             android:id="@+id/menu_group_tasks"
             android:icon="@android:drawable/ic_menu_mylocation"
             android:title="Group Tasks" />
+        <item
+            android:id="@+id/menu_forum"
+            android:icon="@android:drawable/ic_menu_help"
+            android:title="How to Do-it?" />
     </group>
     <item android:title="Account">
         <menu>

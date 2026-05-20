@@ -19,7 +19,6 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -84,19 +83,9 @@ public class GroupDetailsActivity extends AppCompatActivity implements FileAdapt
         toggle.syncState();
 
         // FIX: Display real email and username in the side menu
-        View headerView = navigationView.getHeaderView(0);
-        TextView userEmailText = headerView.findViewById(R.id.userEmailText);
-        TextView usernameText = headerView.findViewById(R.id.usernameText);
-        if (userEmailText != null) userEmailText.setText(user.getEmail());
-        
-        db.collection("users").document(user.getUid()).get().addOnSuccessListener(doc -> {
-            if (doc.exists() && usernameText != null) {
-                String name = doc.getString("username");
-                if (name != null) usernameText.setText(name);
-            }
-        });
+        updateMenuHeader(navigationView, user);
 
-        // Handle back press to close chat or drawer before leaving
+        // Handle back press
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
@@ -149,10 +138,23 @@ public class GroupDetailsActivity extends AppCompatActivity implements FileAdapt
 
         setupRealtimeListeners();
 
-        // Check if we should start with the chat fragment open
         if (getIntent().getBooleanExtra("start_with_chat", false)) {
             openGroupChat();
         }
+    }
+
+    private void updateMenuHeader(NavigationView navigationView, FirebaseUser user) {
+        View headerView = navigationView.getHeaderView(0);
+        TextView emailText = headerView.findViewById(R.id.userEmailText);
+        TextView usernameText = headerView.findViewById(R.id.usernameText);
+        if (emailText != null) emailText.setText(user.getEmail());
+        
+        db.collection("users").document(user.getUid()).get().addOnSuccessListener(doc -> {
+            if (doc.exists() && usernameText != null) {
+                String name = doc.getString("username");
+                if (name != null) usernameText.setText(name);
+            }
+        });
     }
 
     private void openGroupChat() {
@@ -172,6 +174,9 @@ public class GroupDetailsActivity extends AppCompatActivity implements FileAdapt
             finish();
         } else if (id == R.id.menu_group_tasks) {
             startActivity(new Intent(this, GroupsActivity.class));
+            finish();
+        } else if (id == R.id.menu_forum) {
+            startActivity(new Intent(this, ForumActivity.class));
             finish();
         } else if (id == R.id.menu_logout) {
             auth.signOut();
@@ -193,17 +198,13 @@ public class GroupDetailsActivity extends AppCompatActivity implements FileAdapt
     }
 
     @Override
-    public void onTaskClick(Task task) {
-        // detail view
-    }
+    public void onTaskClick(Task task) {}
 
     @Override
     public void onViewImage(Task task) {
         if (task.imageUrl != null && !task.imageUrl.isEmpty()) {
             TaskImagePreviewFragment fragment = TaskImagePreviewFragment.newInstance(task.title, task.imageUrl);
             fragment.show(getSupportFragmentManager(), "image_preview");
-        } else {
-            Toast.makeText(this, "No image for this task", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -287,18 +288,7 @@ public class GroupDetailsActivity extends AppCompatActivity implements FileAdapt
                 .setTitle("Add task to " + taskFile.fileName)
                 .setItems(taskTitles, (dialog, which) -> {
                     Task selectedTask = taskList.get(which);
-                    if (taskFile.tasks == null) taskFile.tasks = new ArrayList<>();
-                    
-                    // Check for duplicates
-                    for (Task t : taskFile.tasks) {
-                        if (t.docId != null && t.docId.equals(selectedTask.docId)) {
-                            Toast.makeText(this, "Already in file", Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-                    }
-                    
-                    taskFile.tasks.add(selectedTask);
-                    db.collection("files").document(taskFile.docId).update("tasks", taskFile.tasks)
+                    db.collection("files").document(taskFile.docId).update("tasks", FieldValue.arrayUnion(selectedTask))
                             .addOnSuccessListener(aVoid -> Toast.makeText(GroupDetailsActivity.this, "Added to file!", Toast.LENGTH_SHORT).show());
                 })
                 .show();

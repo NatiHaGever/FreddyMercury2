@@ -24,7 +24,6 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -83,7 +82,7 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
 
-        // FIX 3: Display real email and username in the side menu
+        // FIX: Display real email and username in the side menu
         updateMenuHeader(navigationView, user);
 
         todayDateText = findViewById(R.id.todayDateText);
@@ -181,8 +180,13 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.menu_group_tasks) startActivity(new Intent(this, GroupsActivity.class));
-        else if (id == R.id.menu_logout) logout();
+        if (id == R.id.menu_group_tasks) {
+            startActivity(new Intent(this, GroupsActivity.class));
+        } else if (id == R.id.menu_forum) {
+            startActivity(new Intent(this, ForumActivity.class));
+        } else if (id == R.id.menu_logout) {
+            logout();
+        }
         drawerLayout.closeDrawer(GravityCompat.START);
         return true;
     }
@@ -194,15 +198,14 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
     }
 
     @Override
-    public void onTaskClick(Task task) {}
+    public void onTaskClick(Task task) {
+    }
 
     @Override
     public void onViewImage(Task task) {
         if (task.imageUrl != null && !task.imageUrl.isEmpty()) {
             TaskImagePreviewFragment fragment = TaskImagePreviewFragment.newInstance(task.title, task.imageUrl);
             fragment.show(getSupportFragmentManager(), "image_preview");
-        } else {
-            Toast.makeText(this, "No image found for this task", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -218,7 +221,7 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
 
     @Override
     public void onAddTaskToFileClick(TaskFile taskFile) {
-        // FIX 2: Implementation for the "Insert" (Add Task to File) functionality
+        // FIX: Reliable implementation for adding a task to a file
         if (taskList.isEmpty()) {
             Toast.makeText(this, "No tasks available to add", Toast.LENGTH_SHORT).show();
             return;
@@ -230,15 +233,37 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
         }
 
         new AlertDialog.Builder(this)
-                .setTitle("Select task to insert into " + taskFile.fileName)
+                .setTitle("Select task for " + taskFile.fileName)
                 .setItems(taskTitles, (dialog, which) -> {
                     Task selectedTask = taskList.get(which);
                     
-                    // Use FieldValue.arrayUnion to safely add the task object to the array in Firestore
-                    db.collection("files").document(taskFile.docId)
-                            .update("tasks", FieldValue.arrayUnion(selectedTask))
-                            .addOnSuccessListener(aVoid -> Toast.makeText(Home.this, "Task inserted successfully!", Toast.LENGTH_SHORT).show())
-                            .addOnFailureListener(e -> Toast.makeText(Home.this, "Failed to insert task", Toast.LENGTH_SHORT).show());
+                    // Fetch current file and update it
+                    db.collection("files").document(taskFile.docId).get().addOnSuccessListener(snapshot -> {
+                        if (snapshot.exists()) {
+                            TaskFile currentFile = snapshot.toObject(TaskFile.class);
+                            if (currentFile != null) {
+                                if (currentFile.tasks == null) currentFile.tasks = new ArrayList<>();
+                                
+                                // Check for duplicates
+                                boolean exists = false;
+                                for (Task t : currentFile.tasks) {
+                                    if (t.docId != null && t.docId.equals(selectedTask.docId)) {
+                                        exists = true;
+                                        break;
+                                    }
+                                }
+
+                                if (!exists) {
+                                    currentFile.tasks.add(selectedTask);
+                                    db.collection("files").document(taskFile.docId).set(currentFile)
+                                            .addOnSuccessListener(aVoid -> Toast.makeText(Home.this, "Inserted successfully!", Toast.LENGTH_SHORT).show())
+                                            .addOnFailureListener(e -> Toast.makeText(Home.this, "Failed to insert", Toast.LENGTH_SHORT).show());
+                                } else {
+                                    Toast.makeText(Home.this, "Already in file", Toast.LENGTH_SHORT).show();
+                                }
+                            }
+                        }
+                    });
                 })
                 .show();
     }
@@ -259,11 +284,11 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
     }
 
     private void showDeleteAllConfirmation() {
-        // FIX 1: Robust Delete All functionality
+        // FIX: Sequential WriteBatch deletion for reliability
         new AlertDialog.Builder(this)
                 .setTitle("Delete All")
-                .setMessage("Are you sure you want to delete everything? This action is permanent.")
-                .setPositiveButton("Yes, Delete All", (dialog, which) -> {
+                .setMessage("Delete all your personal data? This action is permanent.")
+                .setPositiveButton("Yes, Clear All", (dialog, which) -> {
                     String userId = auth.getCurrentUser().getUid();
                     
                     db.collection("tasks").whereEqualTo("userId", userId).get().addOnSuccessListener(queryTasks -> {
@@ -278,8 +303,7 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
                             }
                             
                             batch.commit().addOnSuccessListener(aVoid -> 
-                                Toast.makeText(Home.this, "All personal data cleared", Toast.LENGTH_SHORT).show())
-                                .addOnFailureListener(e -> Toast.makeText(Home.this, "Deletion failed", Toast.LENGTH_SHORT).show());
+                                Toast.makeText(Home.this, "All personal data cleared", Toast.LENGTH_SHORT).show());
                         });
                     });
                 })
