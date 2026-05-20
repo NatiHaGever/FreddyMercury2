@@ -3,7 +3,6 @@ package com.example.freddymercury;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -15,19 +14,16 @@ import com.google.firebase.firestore.FirebaseFirestore;
 
 public class LogIn extends AppCompatActivity {
 
-    EditText usernameInput, passwordInput; // Changed emailInput to usernameInput
-    Button loginBtn;
-    Button SignBtn;
-
-    FirebaseAuth auth;
-    FirebaseFirestore db; // Added Firestore instance
+    private EditText usernameInput, passwordInput;
+    private Button loginBtn, SignBtn;
+    private FirebaseAuth auth;
+    private FirebaseFirestore db;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_log_in);
 
-        // Bind fields (Make sure R.id.usernameInput matches your XML modification)
         usernameInput = findViewById(R.id.usernameInput);
         passwordInput = findViewById(R.id.passwordInput);
         loginBtn = findViewById(R.id.loginBtn);
@@ -50,18 +46,17 @@ public class LogIn extends AppCompatActivity {
                 return;
             }
 
-            // STEP 1: Query Firestore to find the email tied to this username
+            // Look up username document to resolve the mapped authentication email string
             db.collection("users")
                     .whereEqualTo("username", username)
                     .get()
                     .addOnSuccessListener(querySnapshot -> {
                         if (querySnapshot != null && !querySnapshot.isEmpty()) {
-                            // STEP 2: Extract the mapped email address from the found document
                             String actualEmail = querySnapshot.getDocuments().get(0).getString("email");
-
                             if (actualEmail != null) {
-                                // STEP 3: Pass the resolved email and password to Firebase Auth
                                 performFirebaseAuthLogin(actualEmail, password);
+                            } else {
+                                Toast.makeText(LogIn.this, "Error resolving account data.", Toast.LENGTH_SHORT).show();
                             }
                         } else {
                             Toast.makeText(LogIn.this, "Username not found!", Toast.LENGTH_SHORT).show();

@@ -24,6 +24,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -63,18 +64,16 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
-        // Check if user is logged in
-        if (auth.getCurrentUser() == null) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
             startActivity(new Intent(this, LogIn.class));
             finish();
             return;
         }
 
-        // --- Toolbar Setup ---
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        // --- Side Menu (Navigation Drawer) Setup ---
         drawerLayout = findViewById(R.id.drawer_layout);
         NavigationView navigationView = findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
@@ -84,40 +83,8 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
 
-        // --- FIXED: Updated to fetch username from Firestore instead of email ---
-        FirebaseUser user = auth.getCurrentUser();
-        if (user != null) {
-            View headerView = navigationView.getHeaderView(0);
-            TextView usernameText = headerView.findViewById(R.id.usernameText);
-
-            if (usernameText != null) {
-                db.collection("users")
-                        .document(user.getUid())
-                        .get()
-                        .addOnSuccessListener(documentSnapshot -> {
-                            if (documentSnapshot.exists()) {
-                                String loadedUsername = documentSnapshot.getString("username");
-                                if (loadedUsername != null) {
-                                    usernameText.setText(loadedUsername);
-                                }
-                            }
-                        })
-                        .addOnFailureListener(e -> Log.e("HomeHeaderError", "Could not load username for profile panel", e));
-            }
-        }
-
-        // Modern way to handle back press
-        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
-            @Override
-            public void handleOnBackPressed() {
-                if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
-                    drawerLayout.closeDrawer(GravityCompat.START);
-                } else {
-                    setEnabled(false);
-                    finish();
-                }
-            }
-        });
+        // FIX 3: Display real email and username in the side menu
+        updateMenuHeader(navigationView, user);
 
         todayDateText = findViewById(R.id.todayDateText);
         tasksRecycler = findViewById(R.id.tasksRecycler);
@@ -129,13 +96,11 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
         String today = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(new Date());
         todayDateText.setText("Today: " + today);
 
-        // Setup Tasks
         taskList = new ArrayList<>();
         taskAdapter = new TaskAdapter(taskList, this);
         tasksRecycler.setLayoutManager(new LinearLayoutManager(this));
         tasksRecycler.setAdapter(taskAdapter);
 
-        // Setup Files
         fileList = new ArrayList<>();
         fileAdapter = new FileAdapter(fileList, this);
         filesRecycler.setLayoutManager(new LinearLayoutManager(this));
@@ -146,19 +111,78 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
         deleteAllBtn.setOnClickListener(v -> showDeleteAllConfirmation());
 
         setupRealtimeListeners();
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                    drawerLayout.closeDrawer(GravityCompat.START);
+                } else {
+                    setEnabled(false);
+                    onBackPressed();
+                }
+            }
+        });
+    }
+
+    private void updateMenuHeader(NavigationView navigationView, FirebaseUser user) {
+        View headerView = navigationView.getHeaderView(0);
+        TextView emailText = headerView.findViewById(R.id.userEmailText);
+        TextView usernameText = headerView.findViewById(R.id.usernameText);
+        
+        if (emailText != null) emailText.setText(user.getEmail());
+        
+        db.collection("users").document(user.getUid()).get().addOnSuccessListener(doc -> {
+            if (doc.exists() && usernameText != null) {
+                String name = doc.getString("username");
+                if (name != null) usernameText.setText(name);
+            }
+        });
+    }
+
+    private void setupRealtimeListeners() {
+        String userId = auth.getCurrentUser().getUid();
+
+        taskListener = db.collection("tasks").whereEqualTo("userId", userId)
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) return;
+                    if (value != null) {
+                        taskList.clear();
+                        for (QueryDocumentSnapshot doc : value) {
+                            Task t = doc.toObject(Task.class);
+                            t.docId = doc.getId();
+                            // Show only personal tasks in the main list
+                            if (t.groupId == null || t.groupId.isEmpty() || t.groupId.equals("personal")) {
+                                taskList.add(t);
+                            }
+                        }
+                        taskAdapter.notifyDataSetChanged();
+                    }
+                });
+
+        fileListener = db.collection("files").whereEqualTo("userId", userId)
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) return;
+                    if (value != null) {
+                        fileList.clear();
+                        for (QueryDocumentSnapshot doc : value) {
+                            TaskFile f = doc.toObject(TaskFile.class);
+                            f.docId = doc.getId();
+                            // Show only personal files in the main list
+                            if (f.groupId == null || f.groupId.isEmpty()) {
+                                fileList.add(f);
+                            }
+                        }
+                        fileAdapter.notifyDataSetChanged();
+                    }
+                });
     }
 
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.menu_my_tasks) {
-            // Already here
-        } else if (id == R.id.menu_group_tasks) {
-            startActivity(new Intent(this, GroupsActivity.class));
-        } else if (id == R.id.menu_logout) {
-            logout();
-        }
-
+        if (id == R.id.menu_group_tasks) startActivity(new Intent(this, GroupsActivity.class));
+        else if (id == R.id.menu_logout) logout();
         drawerLayout.closeDrawer(GravityCompat.START);
         return true;
     }
@@ -169,59 +193,17 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
         finish();
     }
 
-    private void setupRealtimeListeners() {
-        FirebaseUser user = auth.getCurrentUser();
-        if (user == null) return;
-        String userId = user.getUid();
+    @Override
+    public void onTaskClick(Task task) {}
 
-        taskListener = db.collection("tasks").whereEqualTo("userId", userId)
-                .addSnapshotListener((value, error) -> {
-                    if (value != null) {
-                        taskList.clear();
-                        for (QueryDocumentSnapshot doc : value) {
-                            Task t = doc.toObject(Task.class);
-                            t.docId = doc.getId();
-                            taskList.add(t);
-                        }
-                        taskAdapter.notifyDataSetChanged();
-                    }
-                });
-
-        fileListener = db.collection("files").whereEqualTo("userId", userId)
-                .addSnapshotListener((value, error) -> {
-                    if (value != null) {
-                        fileList.clear();
-                        for (QueryDocumentSnapshot doc : value) {
-                            TaskFile f = doc.toObject(TaskFile.class);
-                            f.docId = doc.getId();
-                            fileList.add(f);
-                        }
-                        fileAdapter.notifyDataSetChanged();
-                    }
-                });
-    }
-
-    private void showDeleteAllConfirmation() {
-        new AlertDialog.Builder(this)
-                .setTitle("Delete All")
-                .setMessage("Are you sure you want to delete everything?")
-                .setPositiveButton("Yes", (dialog, which) -> {
-                    FirebaseUser user = auth.getCurrentUser();
-                    if (user == null) return;
-                    String userId = user.getUid();
-                    WriteBatch batch = db.batch();
-
-                    db.collection("tasks").whereEqualTo("userId", userId).get().addOnSuccessListener(query -> {
-                        for (QueryDocumentSnapshot doc : query) batch.delete(doc.getReference());
-                        db.collection("files").whereEqualTo("userId", userId).get().addOnSuccessListener(queryFiles -> {
-                            for (QueryDocumentSnapshot doc : queryFiles) batch.delete(doc.getReference());
-                            batch.commit().addOnSuccessListener(aVoid ->
-                                    Toast.makeText(Home.this, "Everything deleted", Toast.LENGTH_SHORT).show());
-                        });
-                    });
-                })
-                .setNegativeButton("No", null)
-                .show();
+    @Override
+    public void onViewImage(Task task) {
+        if (task.imageUrl != null && !task.imageUrl.isEmpty()) {
+            TaskImagePreviewFragment fragment = TaskImagePreviewFragment.newInstance(task.title, task.imageUrl);
+            fragment.show(getSupportFragmentManager(), "image_preview");
+        } else {
+            Toast.makeText(this, "No image found for this task", Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
@@ -236,6 +218,7 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
 
     @Override
     public void onAddTaskToFileClick(TaskFile taskFile) {
+        // FIX 2: Implementation for the "Insert" (Add Task to File) functionality
         if (taskList.isEmpty()) {
             Toast.makeText(this, "No tasks available to add", Toast.LENGTH_SHORT).show();
             return;
@@ -247,74 +230,61 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
         }
 
         new AlertDialog.Builder(this)
-                .setTitle("Add to " + taskFile.fileName)
+                .setTitle("Select task to insert into " + taskFile.fileName)
                 .setItems(taskTitles, (dialog, which) -> {
-                    addTaskToTaskFile(taskFile, taskList.get(which));
+                    Task selectedTask = taskList.get(which);
+                    
+                    // Use FieldValue.arrayUnion to safely add the task object to the array in Firestore
+                    db.collection("files").document(taskFile.docId)
+                            .update("tasks", FieldValue.arrayUnion(selectedTask))
+                            .addOnSuccessListener(aVoid -> Toast.makeText(Home.this, "Task inserted successfully!", Toast.LENGTH_SHORT).show())
+                            .addOnFailureListener(e -> Toast.makeText(Home.this, "Failed to insert task", Toast.LENGTH_SHORT).show());
                 })
                 .show();
     }
 
     @Override
     public void onDeleteFileClick(TaskFile taskFile) {
-        db.collection("files").document(taskFile.docId).delete()
-                .addOnSuccessListener(aVoid -> Toast.makeText(this, "File deleted", Toast.LENGTH_SHORT).show());
-    }
-
-    private void addTaskToTaskFile(TaskFile file, Task task) {
-        if (file.tasks == null) file.tasks = new ArrayList<>();
-
-        for (Task t : file.tasks) {
-            if (t.docId.equals(task.docId)) {
-                Toast.makeText(this, "Task already in file", Toast.LENGTH_SHORT).show();
-                return;
-            }
-        }
-
-        file.tasks.add(task);
-        db.collection("files").document(file.docId).set(file)
-                .addOnSuccessListener(aVoid -> Toast.makeText(this, "Task added", Toast.LENGTH_SHORT).show());
+        db.collection("files").document(taskFile.docId).delete();
     }
 
     @Override
     public void onTaskCompletedToggle(Task task) {
-        task.completed = !task.completed;
-        db.collection("tasks").document(task.docId).update("completed", task.completed);
-
-        for (TaskFile file : fileList) {
-            if (file.tasks != null) {
-                boolean updated = false;
-                for (Task t : file.tasks) {
-                    if (t.docId.equals(task.docId)) {
-                        t.completed = task.completed;
-                        updated = true;
-                    }
-                }
-                if (updated) {
-                    db.collection("files").document(file.docId).set(file);
-                }
-            }
-        }
+        db.collection("tasks").document(task.docId).update("completed", !task.completed);
     }
 
     @Override
     public void onTaskDelete(Task task) {
         db.collection("tasks").document(task.docId).delete();
+    }
 
-        for (TaskFile file : fileList) {
-            if (file.tasks != null) {
-                boolean removed = false;
-                for (int i = 0; i < file.tasks.size(); i++) {
-                    if (file.tasks.get(i).docId.equals(task.docId)) {
-                        file.tasks.remove(i);
-                        removed = true;
-                        break;
-                    }
-                }
-                if (removed) {
-                    db.collection("files").document(file.docId).set(file);
-                }
-            }
-        }
+    private void showDeleteAllConfirmation() {
+        // FIX 1: Robust Delete All functionality
+        new AlertDialog.Builder(this)
+                .setTitle("Delete All")
+                .setMessage("Are you sure you want to delete everything? This action is permanent.")
+                .setPositiveButton("Yes, Delete All", (dialog, which) -> {
+                    String userId = auth.getCurrentUser().getUid();
+                    
+                    db.collection("tasks").whereEqualTo("userId", userId).get().addOnSuccessListener(queryTasks -> {
+                        WriteBatch batch = db.batch();
+                        for (QueryDocumentSnapshot doc : queryTasks) {
+                            batch.delete(doc.getReference());
+                        }
+                        
+                        db.collection("files").whereEqualTo("userId", userId).get().addOnSuccessListener(queryFiles -> {
+                            for (QueryDocumentSnapshot doc : queryFiles) {
+                                batch.delete(doc.getReference());
+                            }
+                            
+                            batch.commit().addOnSuccessListener(aVoid -> 
+                                Toast.makeText(Home.this, "All personal data cleared", Toast.LENGTH_SHORT).show())
+                                .addOnFailureListener(e -> Toast.makeText(Home.this, "Deletion failed", Toast.LENGTH_SHORT).show());
+                        });
+                    });
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     @Override

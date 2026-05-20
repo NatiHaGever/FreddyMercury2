@@ -2,41 +2,27 @@ package com.example.freddymercury;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.Button;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
-    Button SignIn;
-    Button SignUp;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // This links to the XML file we just fixed
         setContentView(R.layout.activity_main);
 
-        SignIn = findViewById(R.id.button);
-        SignUp = findViewById(R.id.button2);
+        // PASTE THE CODE HERE:
+        Button btnSignIn = findViewById(R.id.btnSignIn);
+        Button btnCreateAccount = findViewById(R.id.btnCreateAccount);
 
-        SignIn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(MainActivity.this, LogIn.class);
-                startActivity(intent);
-            }
+        btnSignIn.setOnClickListener(v -> {
+            startActivity(new Intent(MainActivity.this, LogIn.class));
         });
 
-        SignUp.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(MainActivity.this, SignUp.class);
-                startActivity(intent);
-            }
+        btnCreateAccount.setOnClickListener(v -> {
+            startActivity(new Intent(MainActivity.this, SignUp.class));
         });
-
-        // --- ADDED: Request notification permissions for Android 13+ ---
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 101);
-        }
     }
 }

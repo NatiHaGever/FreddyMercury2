@@ -2,7 +2,9 @@ package com.example.freddymercury;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -28,7 +30,7 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
+import java.util.Random;
 
 public class GroupsActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
@@ -65,11 +67,20 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
 
+        // FIX: Display real email and username in the side menu
         FirebaseUser user = auth.getCurrentUser();
         if (user != null) {
-            String email = user.getEmail();
-            TextView emailText = navigationView.getHeaderView(0).findViewById(R.id.userEmailText);
-            if (emailText != null) emailText.setText(email);
+            View headerView = navigationView.getHeaderView(0);
+            TextView emailText = headerView.findViewById(R.id.userEmailText);
+            TextView usernameText = headerView.findViewById(R.id.usernameText);
+            if (emailText != null) emailText.setText(user.getEmail());
+            
+            db.collection("users").document(user.getUid()).get().addOnSuccessListener(doc -> {
+                if (doc.exists() && usernameText != null) {
+                    String name = doc.getString("username");
+                    if (name != null) usernameText.setText(name);
+                }
+            });
         }
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -79,7 +90,7 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
                     drawerLayout.closeDrawer(GravityCompat.START);
                 } else {
                     setEnabled(false);
-                    finish();
+                    onBackPressed();
                 }
             }
         });
@@ -90,9 +101,7 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
 
         groupList = new ArrayList<>();
         adapter = new GroupAdapter(groupList, group -> {
-            Intent intent = new Intent(GroupsActivity.this, GroupDetailsActivity.class);
-            intent.putExtra("group", group);
-            startActivity(intent);
+            showGroupOptionsDialog(group);
         });
 
         groupsRecycler.setLayoutManager(new LinearLayoutManager(this));
@@ -104,12 +113,29 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
         loadUserGroups();
     }
 
+    private void showGroupOptionsDialog(Group group) {
+        String[] options = {"📋 Tasks & Files", "💬 Group Chat"};
+        new AlertDialog.Builder(this)
+                .setTitle(group.groupName)
+                .setItems(options, (dialog, which) -> {
+                    Intent intent = new Intent(GroupsActivity.this, GroupDetailsActivity.class);
+                    intent.putExtra("group", group);
+                    if (which == 1) {
+                        intent.putExtra("start_with_chat", true);
+                    }
+                    startActivity(intent);
+                })
+                .show();
+    }
+
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.menu_my_tasks) {
             startActivity(new Intent(this, Home.class));
             finish();
+        } else if (id == R.id.menu_group_tasks) {
+            drawerLayout.closeDrawer(GravityCompat.START);
         } else if (id == R.id.menu_logout) {
             logout();
         }
@@ -133,7 +159,9 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
                     if (value != null) {
                         groupList.clear();
                         for (QueryDocumentSnapshot doc : value) {
-                            groupList.add(doc.toObject(Group.class));
+                            Group g = doc.toObject(Group.class);
+                            g.groupId = doc.getId();
+                            groupList.add(g);
                         }
                         adapter.notifyDataSetChanged();
                     }
@@ -158,15 +186,24 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
         if (auth.getCurrentUser() == null) return;
         String userId = auth.getCurrentUser().getUid();
 
-        // Generate document ID first to explicitly match internal property
         String customGroupId = db.collection("groups").document().getId();
-        String groupCode = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        String groupCode = generateRandomCode(6);
 
         Group newGroup = new Group(customGroupId, name, groupCode, userId);
 
         db.collection("groups").document(customGroupId).set(newGroup)
-                .addOnSuccessListener(aVoid -> Toast.makeText(this, "Group Created!", Toast.LENGTH_SHORT).show())
+                .addOnSuccessListener(aVoid -> Toast.makeText(this, "Group Created! Code: " + groupCode, Toast.LENGTH_LONG).show())
                 .addOnFailureListener(e -> Toast.makeText(this, "Failed to create group", Toast.LENGTH_SHORT).show());
+    }
+
+    private String generateRandomCode(int length) {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        StringBuilder sb = new StringBuilder();
+        Random random = new Random();
+        for (int i = 0; i < length; i++) {
+            sb.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return sb.toString();
     }
 
     private void showJoinGroupDialog() {
@@ -190,14 +227,17 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
         db.collection("groups").whereEqualTo("groupCode", code).get()
                 .addOnSuccessListener(querySnapshot -> {
                     if (!querySnapshot.isEmpty()) {
-                        QueryDocumentSnapshot doc = (QueryDocumentSnapshot) querySnapshot.getDocuments().get(0);
-                        String targetGroupId = doc.getId();
-
-                        // Use arrayUnion to push member without overwriting existing data
-                        db.collection("groups").document(targetGroupId)
-                                .update("members", FieldValue.arrayUnion(userId))
-                                .addOnSuccessListener(aVoid -> Toast.makeText(GroupsActivity.this, "Joined successfully!", Toast.LENGTH_SHORT).show())
-                                .addOnFailureListener(e -> Toast.makeText(GroupsActivity.this, "Error joining group", Toast.LENGTH_SHORT).show());
+                        for (QueryDocumentSnapshot doc : querySnapshot) {
+                            Group group = doc.toObject(Group.class);
+                            if (group.members != null && group.members.contains(userId)) {
+                                Toast.makeText(this, "Already a member", Toast.LENGTH_SHORT).show();
+                            } else {
+                                db.collection("groups").document(doc.getId())
+                                        .update("members", FieldValue.arrayUnion(userId))
+                                        .addOnSuccessListener(aVoid -> Toast.makeText(GroupsActivity.this, "Joined successfully!", Toast.LENGTH_SHORT).show())
+                                        .addOnFailureListener(e -> Toast.makeText(GroupsActivity.this, "Error joining group", Toast.LENGTH_SHORT).show());
+                            }
+                        }
                     } else {
                         Toast.makeText(this, "Invalid group code!", Toast.LENGTH_SHORT).show();
                     }

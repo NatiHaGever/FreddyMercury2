@@ -1,14 +1,18 @@
 package com.example.freddymercury;
 
+import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Paint;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import java.util.List;
 
 public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder> {
@@ -19,6 +23,8 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     public interface OnTaskActionListener {
         void onTaskCompletedToggle(Task task);
         void onTaskDelete(Task task);
+        void onTaskClick(Task task);
+        void onViewImage(Task task); // Added for the preview button
     }
 
     public TaskAdapter(List<Task> tasks, OnTaskActionListener listener) {
@@ -29,7 +35,6 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     @NonNull
     @Override
     public TaskViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // Updated to use "item_task" to match your customized item layout filename
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.task_item, parent, false);
         return new TaskViewHolder(view);
@@ -38,55 +43,55 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     @Override
     public void onBindViewHolder(@NonNull TaskViewHolder holder, int position) {
         Task t = tasks.get(position);
+        Context context = holder.itemView.getContext();
 
         holder.title.setText(t.title);
         holder.description.setText(t.description);
         holder.date.setText("Due: " + t.dueDate);
 
-        // Context instance for fetching colors dynamically
-        var context = holder.itemView.getContext();
-
-        // High-Visibility "Done" State Logic
-        if (t.completed) {
-            // 1. Change background container to highly visible soft green accent
-            holder.itemContainer.setBackgroundColor(context.getResources().getColor(R.color.task_done_bg));
-
-            // 2. Strike through the title and gray it out
-            holder.title.setPaintFlags(holder.title.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
-            holder.title.setTextColor(context.getResources().getColor(R.color.text_muted));
-
-            // 3. Reveal the green status badge
-            holder.statusBadge.setVisibility(View.VISIBLE);
-
-            // 4. Update actionable button UI state
-            holder.completedBtn.setText("Undo");
-            holder.completedBtn.setBackgroundTintList(ColorStateList.valueOf(context.getResources().getColor(R.color.text_muted)));
+        // Load image with Glide if it exists
+        if (t.imageUrl != null && !t.imageUrl.isEmpty()) {
+            holder.taskUploadedImage.setVisibility(View.VISIBLE);
+            holder.viewImageBtn.setVisibility(View.VISIBLE); // Show button if image exists
+            Glide.with(context)
+                    .load(t.imageUrl)
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .placeholder(android.R.drawable.ic_menu_gallery)
+                    .error(android.R.drawable.ic_menu_report_image)
+                    .into(holder.taskUploadedImage);
         } else {
-            // Reset to default active task state
-            holder.itemContainer.setBackgroundColor(context.getResources().getColor(android.R.color.white));
-
-            // Remove strike-through styling
-            holder.title.setPaintFlags(holder.title.getPaintFlags() & (~Paint.STRIKE_THRU_TEXT_FLAG));
-            holder.title.setTextColor(context.getResources().getColor(R.color.text_primary));
-
-            // Hide the status badge
-            holder.statusBadge.setVisibility(View.GONE);
-
-            // Reset button to standard Emerald Green accent accent profile
-            holder.completedBtn.setText("Complete");
-            holder.completedBtn.setBackgroundTintList(ColorStateList.valueOf(context.getResources().getColor(R.color.colorAccent)));
+            holder.taskUploadedImage.setVisibility(View.GONE);
+            holder.viewImageBtn.setVisibility(View.GONE); // Hide button if no image
         }
 
+        if (t.completed) {
+            holder.itemContainer.setBackgroundColor(context.getResources().getColor(R.color.task_done_bg));
+            holder.title.setPaintFlags(holder.title.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
+            holder.title.setTextColor(context.getResources().getColor(R.color.text_muted));
+            holder.statusBadge.setVisibility(View.VISIBLE);
+            holder.completedBtn.setText("Undo");
+        } else {
+            holder.itemContainer.setBackgroundColor(context.getResources().getColor(android.R.color.white));
+            holder.title.setPaintFlags(holder.title.getPaintFlags() & (~Paint.STRIKE_THRU_TEXT_FLAG));
+            holder.title.setTextColor(context.getResources().getColor(R.color.text_primary));
+            holder.statusBadge.setVisibility(View.GONE);
+            holder.completedBtn.setText("Complete");
+        }
+
+        holder.itemContainer.setOnClickListener(v -> {
+            if (listener != null) listener.onTaskClick(t);
+        });
+
         holder.completedBtn.setOnClickListener(v -> {
-            if (listener != null) {
-                listener.onTaskCompletedToggle(t);
-            }
+            if (listener != null) listener.onTaskCompletedToggle(t);
         });
 
         holder.deleteBtn.setOnClickListener(v -> {
-            if (listener != null) {
-                listener.onTaskDelete(t);
-            }
+            if (listener != null) listener.onTaskDelete(t);
+        });
+
+        holder.viewImageBtn.setOnClickListener(v -> {
+            if (listener != null) listener.onViewImage(t);
         });
     }
 
@@ -98,7 +103,8 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     static class TaskViewHolder extends RecyclerView.ViewHolder {
         View itemContainer;
         TextView title, date, description, statusBadge;
-        Button completedBtn, deleteBtn;
+        ImageView taskUploadedImage;
+        Button completedBtn, deleteBtn, viewImageBtn;
 
         public TaskViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -108,7 +114,9 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
             date = itemView.findViewById(R.id.taskDate);
             completedBtn = itemView.findViewById(R.id.completedBtn);
             deleteBtn = itemView.findViewById(R.id.deleteBtn);
+            viewImageBtn = itemView.findViewById(R.id.viewImageBtn);
             description = itemView.findViewById(R.id.Description);
+            taskUploadedImage = itemView.findViewById(R.id.taskUploadedImage);
         }
     }
 }

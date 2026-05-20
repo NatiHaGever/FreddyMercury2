@@ -3,6 +3,7 @@ package com.example.freddymercury;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -18,6 +19,7 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -40,7 +42,7 @@ public class GroupDetailsActivity extends AppCompatActivity implements FileAdapt
     private final List<TaskFile> fileList = new ArrayList<>();
 
     private FirebaseFirestore db;
-    private java.lang.String currentUserId;
+    private String currentUserId;
     private FirebaseAuth auth;
     private ListenerRegistration groupMetaListener, taskListener, fileListener;
 
@@ -81,18 +83,30 @@ public class GroupDetailsActivity extends AppCompatActivity implements FileAdapt
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
 
-        String email = user.getEmail();
-        TextView emailText = navigationView.getHeaderView(0).findViewById(R.id.userEmailText);
-        if (emailText != null) emailText.setText(email);
+        // FIX: Display real email and username in the side menu
+        View headerView = navigationView.getHeaderView(0);
+        TextView userEmailText = headerView.findViewById(R.id.userEmailText);
+        TextView usernameText = headerView.findViewById(R.id.usernameText);
+        if (userEmailText != null) userEmailText.setText(user.getEmail());
+        
+        db.collection("users").document(user.getUid()).get().addOnSuccessListener(doc -> {
+            if (doc.exists() && usernameText != null) {
+                String name = doc.getString("username");
+                if (name != null) usernameText.setText(name);
+            }
+        });
 
+        // Handle back press to close chat or drawer before leaving
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
                 if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
                     drawerLayout.closeDrawer(GravityCompat.START);
+                } else if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
+                    getSupportFragmentManager().popBackStack();
                 } else {
                     setEnabled(false);
-                    finish();
+                    onBackPressed();
                 }
             }
         });
@@ -123,13 +137,31 @@ public class GroupDetailsActivity extends AppCompatActivity implements FileAdapt
             startActivity(intent);
         });
 
-        // NEW: Leave Group Button Hook (Make sure to add this ID to your layout XML file!)
+        Button btnOpenChat = findViewById(R.id.btnOpenChat);
+        if (btnOpenChat != null) {
+            btnOpenChat.setOnClickListener(v -> openGroupChat());
+        }
+
         Button leaveGroupBtn = findViewById(R.id.leaveGroupBtn);
         if (leaveGroupBtn != null) {
             leaveGroupBtn.setOnClickListener(v -> showLeaveGroupConfirmationDialog());
         }
 
         setupRealtimeListeners();
+
+        // Check if we should start with the chat fragment open
+        if (getIntent().getBooleanExtra("start_with_chat", false)) {
+            openGroupChat();
+        }
+    }
+
+    private void openGroupChat() {
+        GroupChatFragment fragment = GroupChatFragment.newInstance(group.groupId);
+        getSupportFragmentManager().beginTransaction()
+                .setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out)
+                .replace(R.id.groupFragmentContainer, fragment)
+                .addToBackStack("chat")
+                .commit();
     }
 
     @Override
@@ -150,57 +182,58 @@ public class GroupDetailsActivity extends AppCompatActivity implements FileAdapt
         return true;
     }
 
-    // NEW: Handles the confirmation dialog and checks admin privilege rules
+    @Override
+    public void onTaskCompletedToggle(Task task) {
+        db.collection("tasks").document(task.docId).update("completed", !task.completed);
+    }
+
+    @Override
+    public void onTaskDelete(Task task) {
+        db.collection("tasks").document(task.docId).delete();
+    }
+
+    @Override
+    public void onTaskClick(Task task) {
+        // detail view
+    }
+
+    @Override
+    public void onViewImage(Task task) {
+        if (task.imageUrl != null && !task.imageUrl.isEmpty()) {
+            TaskImagePreviewFragment fragment = TaskImagePreviewFragment.newInstance(task.title, task.imageUrl);
+            fragment.show(getSupportFragmentManager(), "image_preview");
+        } else {
+            Toast.makeText(this, "No image for this task", Toast.LENGTH_SHORT).show();
+        }
+    }
+
     private void showLeaveGroupConfirmationDialog() {
         boolean isAdmin = currentUserId.equals(group.adminId);
         String title = isAdmin ? "Delete Group Permanent?" : "Leave Group";
         String message = isAdmin
-                ? "As the creator/admin, leaving will delete this group and all its tasks permanently for everyone. Proceed?"
-                : "Are you sure you want to leave this group? You won't see these tasks anymore.";
+                ? "As the creator, leaving will delete this group permanently for everyone. Proceed?"
+                : "Are you sure you want to leave this group?";
 
         new AlertDialog.Builder(this)
                 .setTitle(title)
                 .setMessage(message)
-                .setPositiveButton(isAdmin ? "Delete Permanently" : "Leave Group", (dialog, which) -> handleLeaveGroupLogic(isAdmin))
+                .setPositiveButton("Confirm", (dialog, which) -> handleLeaveGroupLogic(isAdmin))
                 .setNegativeButton("Cancel", null)
                 .show();
     }
 
-    // NEW: Executes backend database tasks safely depending on user privileges
     private void handleLeaveGroupLogic(boolean isAdmin) {
         if (isAdmin) {
-            // Delete the entire document if admin drops out
             db.collection("groups").document(group.groupId).delete()
-                    .addOnSuccessListener(aVoid -> {
-                        Toast.makeText(this, "Group deleted successfully", Toast.LENGTH_SHORT).show();
-                        finish();
-                    })
-                    .addOnFailureListener(e -> Toast.makeText(this, "Failed to delete group", Toast.LENGTH_SHORT).show());
+                    .addOnSuccessListener(aVoid -> finish());
         } else {
-            // Atomically rip the UID cleanly from array pool
             db.collection("groups").document(group.groupId)
                     .update("members", FieldValue.arrayRemove(currentUserId))
-                    .addOnSuccessListener(aVoid -> {
-                        Toast.makeText(this, "You left the group", Toast.LENGTH_SHORT).show();
-                        finish();
-                    })
-                    .addOnFailureListener(e -> Toast.makeText(this, "Failed to leave group", Toast.LENGTH_SHORT).show());
+                    .addOnSuccessListener(aVoid -> finish());
         }
     }
 
     private void setupRealtimeListeners() {
-        groupMetaListener = db.collection("groups").document(group.groupId)
-                .addSnapshotListener((snapshot, error) -> {
-                    if (snapshot != null && snapshot.exists()) {
-                        Group updatedGroup = snapshot.toObject(Group.class);
-                        if (updatedGroup != null) {
-                            this.group = updatedGroup;
-                            this.group.groupId = snapshot.getId();
-                            groupTitle.setText(group.groupName + " (" + group.members.size() + " Members)");
-                        }
-                    }
-                });
-
         taskListener = db.collection("tasks").whereEqualTo("groupId", group.groupId)
                 .addSnapshotListener((value, error) -> {
                     if (value != null) {
@@ -234,14 +267,14 @@ public class GroupDetailsActivity extends AppCompatActivity implements FileAdapt
         getSupportFragmentManager().beginTransaction()
                 .setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out)
                 .replace(R.id.groupFragmentContainer, fragment)
-                .addToBackStack(null)
+                .addToBackStack("file_tasks")
                 .commit();
     }
 
     @Override
     public void onAddTaskToFileClick(TaskFile taskFile) {
         if (taskList.isEmpty()) {
-            Toast.makeText(this, "No tasks available in group", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "No group tasks available to add", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -251,21 +284,24 @@ public class GroupDetailsActivity extends AppCompatActivity implements FileAdapt
         }
 
         new AlertDialog.Builder(this)
-                .setTitle("Add to " + taskFile.fileName)
-                .setItems(taskTitles, (dialog, which) -> addTaskToTaskFile(taskFile, taskList.get(which)))
+                .setTitle("Add task to " + taskFile.fileName)
+                .setItems(taskTitles, (dialog, which) -> {
+                    Task selectedTask = taskList.get(which);
+                    if (taskFile.tasks == null) taskFile.tasks = new ArrayList<>();
+                    
+                    // Check for duplicates
+                    for (Task t : taskFile.tasks) {
+                        if (t.docId != null && t.docId.equals(selectedTask.docId)) {
+                            Toast.makeText(this, "Already in file", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                    }
+                    
+                    taskFile.tasks.add(selectedTask);
+                    db.collection("files").document(taskFile.docId).update("tasks", taskFile.tasks)
+                            .addOnSuccessListener(aVoid -> Toast.makeText(GroupDetailsActivity.this, "Added to file!", Toast.LENGTH_SHORT).show());
+                })
                 .show();
-    }
-
-    private void addTaskToTaskFile(TaskFile file, Task task) {
-        if (file.tasks == null) file.tasks = new ArrayList<>();
-        for (Task t : file.tasks) {
-            if (t.docId != null && t.docId.equals(task.docId)) {
-                Toast.makeText(this, "Already in file", Toast.LENGTH_SHORT).show();
-                return;
-            }
-        }
-        file.tasks.add(task);
-        db.collection("files").document(file.docId).set(file);
     }
 
     @Override
@@ -274,45 +310,8 @@ public class GroupDetailsActivity extends AppCompatActivity implements FileAdapt
     }
 
     @Override
-    public void onTaskCompletedToggle(Task task) {
-        task.completed = !task.completed;
-        db.collection("tasks").document(task.docId).update("completed", task.completed);
-        for (TaskFile file : fileList) {
-            if (file.tasks != null) {
-                boolean updated = false;
-                for (Task t : file.tasks) {
-                    if (t.docId != null && t.docId.equals(task.docId)) {
-                        t.completed = task.completed;
-                        updated = true;
-                    }
-                }
-                if (updated) db.collection("files").document(file.docId).set(file);
-            }
-        }
-    }
-
-    @Override
-    public void onTaskDelete(Task task) {
-        db.collection("tasks").document(task.docId).delete();
-        for (TaskFile file : fileList) {
-            if (file.tasks != null) {
-                boolean removed = false;
-                for (int i = 0; i < file.tasks.size(); i++) {
-                    if (file.tasks.get(i).docId != null && file.tasks.get(i).docId.equals(task.docId)) {
-                        file.tasks.remove(i);
-                        removed = true;
-                        break;
-                    }
-                }
-                if (removed) db.collection("files").document(file.docId).set(file);
-            }
-        }
-    }
-
-    @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (groupMetaListener != null) groupMetaListener.remove();
         if (taskListener != null) taskListener.remove();
         if (fileListener != null) fileListener.remove();
     }

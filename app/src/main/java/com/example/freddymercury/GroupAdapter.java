@@ -35,7 +35,9 @@ public class GroupAdapter extends RecyclerView.Adapter<GroupAdapter.GroupViewHol
         Group group = groupList.get(position);
         holder.groupName.setText(group.groupName);
         holder.groupCode.setText("Code: " + group.groupCode);
-        holder.memberCount.setText(group.members.size() + " Members");
+        
+        int memberCount = (group.members != null) ? group.members.size() : 0;
+        holder.memberCount.setText(memberCount + " Members");
 
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) {

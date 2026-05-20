@@ -1,30 +1,30 @@
 package com.example.freddymercury;
 
 import androidx.annotation.Keep;
+import java.io.Serializable;
 
 @Keep
-public class Task {
-    public String docId;       // Used for Firestore's Document ID
+public class Task implements Serializable {
+    public String docId;
     public String title;
     public String dueDate;
     public String userId;
     public String description;
     public boolean completed;
-    public String groupId;     // <-- MUST BE PUBLIC FOR FIRESTORE MAPS
-    public String imageUrl;    // <-- Added for ImgBB storage URLs
+    public String groupId;
+    public String imageUrl;
 
-    // 1. Required empty constructor for Firestore
+    // Fixed: Corrected constructor name from User() to Task()
     public Task() {
     }
 
-    // 2. The constructor your AddTask activity uses
     public Task(String title, String dueDate, String userId, String description) {
         this.title = title;
         this.dueDate = dueDate;
         this.userId = userId;
         this.description = description;
         this.completed = false;
-        this.groupId = "";
-        this.imageUrl = ""; // Default to empty string
+        this.groupId = "personal";
+        this.imageUrl = "";
     }
 }

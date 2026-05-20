@@ -54,7 +54,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp" />
 
-    <!-- Added Task Display Element for List Views -->
+    <!-- Task Image Thumbnail -->
     <ImageView
         android:id="@+id/taskUploadedImage"
         android:layout_width="match_parent"
@@ -70,6 +70,18 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
         android:gravity="end">
+
+        <!-- Button to open full image preview -->
+        <Button
+            android:id="@+id/viewImageBtn"
+            android:text="View Image"
+            style="?android:attr/buttonStyleSmall"
+            android:backgroundTint="@android:color/darker_gray"
+            android:textColor="#FFFFFF"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:visibility="gone"/>
 
         <Button
             android:id="@+id/completedBtn"

@@ -98,14 +98,11 @@ public class FileTasksFragment extends Fragment implements TaskAdapter.OnTaskAct
 
     @Override
     public void onTaskCompletedToggle(Task task) {
-        // Toggle the state
         task.completed = !task.completed;
 
-        // Update the file in Firestore (SnapshotListener will refresh the UI)
         db.collection("files").document(fileDocId).update("tasks", taskList)
                 .addOnFailureListener(e -> Toast.makeText(getContext(), "Sync failed", Toast.LENGTH_SHORT).show());
-        
-        // Also sync with the main tasks collection
+
         if (task.docId != null && !task.docId.isEmpty()) {
             db.collection("tasks").document(task.docId).update("completed", task.completed);
         }
@@ -113,7 +110,6 @@ public class FileTasksFragment extends Fragment implements TaskAdapter.OnTaskAct
 
     @Override
     public void onTaskDelete(Task task) {
-        // Find the task by title/docId and remove it from the list
         Task toRemove = null;
         for (Task t : taskList) {
             if ((t.docId != null && t.docId.equals(task.docId)) || t.title.equals(task.title)) {
@@ -124,11 +120,22 @@ public class FileTasksFragment extends Fragment implements TaskAdapter.OnTaskAct
 
         if (toRemove != null) {
             taskList.remove(toRemove);
-            // Update Firestore file - This ONLY removes it from the file list
             db.collection("files").document(fileDocId).update("tasks", taskList)
                     .addOnSuccessListener(aVoid -> Toast.makeText(getContext(), "Removed from file", Toast.LENGTH_SHORT).show());
-            
-            // Note: We are NOT deleting from the main "tasks" collection here
+        }
+    }
+
+    @Override
+    public void onTaskClick(Task task) {
+    }
+
+    @Override
+    public void onViewImage(Task task) {
+        if (task.imageUrl != null && !task.imageUrl.isEmpty()) {
+            TaskImagePreviewFragment fragment = TaskImagePreviewFragment.newInstance(task.title, task.imageUrl);
+            fragment.show(getParentFragmentManager(), "image_preview");
+        } else {
+            Toast.makeText(getContext(), "No image for this task", Toast.LENGTH_SHORT).show();
         }
     }
 

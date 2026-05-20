@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="4dp">
+
+    <!-- Left Bubble: Other Users -->
+    <LinearLayout
+        android:id="@+id/layoutOtherMessage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:background="#EAEAEA"
+        android:orientation="vertical"
+        android:padding="10dp">
+
+        <TextView
+            android:id="@+id/textOtherUsername"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="User"
+            android:textColor="@color/colorAccent"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <!-- FIXED: Max width applied directly to the text body instead -->
+        <TextView
+            android:id="@+id/textOtherBody"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="Hello world"
+            android:textColor="#333333"
+            android:textSize="15sp"
+            android:maxWidth="260dp" />
+    </LinearLayout>
+
+    <!-- Right Bubble: Current User -->
+    <LinearLayout
+        android:id="@+id/layoutMyMessage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:background="#D1E7DD"
+        android:orientation="vertical"
+        android:padding="10dp"
+        android:visibility="gone">
+
+        <!-- FIXED: Max width applied directly to the text body instead -->
+        <TextView
+            android:id="@+id/textMyBody"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="My message text response"
+            android:textColor="#0F5132"
+            android:textSize="15sp"
+            android:maxWidth="260dp" />
+    </LinearLayout>
+</RelativeLayout>

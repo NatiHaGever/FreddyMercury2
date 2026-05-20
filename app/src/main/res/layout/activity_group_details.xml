@@ -3,12 +3,13 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/bg_light">
+    android:layout_height="match_parent">
 
+    <!-- Main Content -->
     <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:background="@color/bg_light">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
@@ -33,20 +34,23 @@
                 android:orientation="horizontal"
                 android:layout_marginBottom="16dp">
 
-                <ImageView
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:src="@drawable/do_it_"
-                    android:layout_marginEnd="12dp"/>
-
                 <TextView
                     android:id="@+id/groupTitleText"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:text="Group Name"
                     android:textColor="@color/text_primary"
                     android:textSize="22sp"
                     android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/btnOpenChat"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="💬 Chat"
+                    android:backgroundTint="@color/colorAccent"
+                    android:textColor="#FFFFFF" />
             </LinearLayout>
 
             <LinearLayout
@@ -59,7 +63,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Group Files"
+                    android:text="Shared Files"
                     android:textColor="@color/text_muted"
                     android:textSize="14sp"
                     android:textStyle="bold"
@@ -75,7 +79,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Group Tasks"
+                    android:text="Shared Tasks"
                     android:textColor="@color/text_muted"
                     android:textSize="14sp"
                     android:textStyle="bold"
@@ -102,9 +106,7 @@
                     android:layout_height="wrap_content"
                     android:layout_alignParentStart="true"
                     android:layout_centerVertical="true"
-                    android:backgroundTint="@color/colorAccent"
-                    android:text="Add File"
-                    android:textColor="#FFFFFF"/>
+                    android:text="Add File" />
 
                 <Button
                     android:id="@+id/leaveGroupBtn"
@@ -112,8 +114,7 @@
                     android:layout_height="wrap_content"
                     android:layout_centerInParent="true"
                     android:backgroundTint="@color/danger_red"
-                    android:text="Leave"
-                    android:textColor="#FFFFFF" />
+                    android:text="Leave" />
 
                 <com.google.android.material.floatingactionbutton.FloatingActionButton
                     android:id="@+id/addGroupTaskFab"
@@ -121,16 +122,15 @@
                     android:layout_height="wrap_content"
                     android:layout_alignParentEnd="true"
                     android:layout_centerVertical="true"
-                    android:backgroundTint="@color/colorPrimary"
-                    app:tint="#FFFFFF"
                     app:srcCompat="@android:drawable/ic_input_add" />
             </RelativeLayout>
 
+            <!-- Container for Chat and Task overlays -->
             <FrameLayout
                 android:id="@+id/groupFragmentContainer"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:elevation="10dp" />
+                android:elevation="12dp" />
         </RelativeLayout>
     </RelativeLayout>
 
