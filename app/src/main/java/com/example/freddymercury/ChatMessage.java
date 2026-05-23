@@ -1,18 +1,19 @@
 package com.example.freddymercury;
 
 import androidx.annotation.Keep;
-import com.google.firebase.Timestamp;
+import java.io.Serializable;
+import java.util.Date;
 
 @Keep
-public class ChatMessage {
+public class ChatMessage implements Serializable {
     public String messageId;
     public String groupId;
     public String senderId;
     public String senderName;
     public String messageText;
-    public String audioUrl;    // URL for voice message in Firebase Storage
+    public String audioUrl;
     public String messageType; // "text" or "voice"
-    public Timestamp timestamp;
+    public Date timestamp; // Use Date without ServerTimestamp for instant real-time sorting
 
     public ChatMessage() {
         // Required for Firebase
@@ -25,7 +26,7 @@ public class ChatMessage {
         this.senderName = senderName;
         this.messageText = messageText;
         this.messageType = "text";
-        this.timestamp = Timestamp.now();
+        this.timestamp = new Date(); // Set locally for immediate UI update
     }
 
     // Constructor for voice messages (5 args)
@@ -35,6 +36,6 @@ public class ChatMessage {
         this.senderName = senderName;
         this.audioUrl = audioUrl;
         this.messageType = "voice";
-        this.timestamp = Timestamp.now();
+        this.timestamp = new Date(); // Set locally for immediate UI update
     }
 }

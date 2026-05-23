@@ -7,6 +7,16 @@
     android:orientation="vertical"
     android:padding="8dp">
 
+    <!-- ADDED: Name placeholder to prevent crash in Adapter -->
+    <TextView
+        android:id="@+id/text_message_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Me"
+        android:textSize="12sp"
+        android:textColor="@color/text_muted"
+        android:visibility="gone" />
+
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

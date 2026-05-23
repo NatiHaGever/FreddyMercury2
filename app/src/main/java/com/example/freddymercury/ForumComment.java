@@ -13,7 +13,7 @@ public class ForumComment implements Serializable {
     public String text;
     
     @ServerTimestamp
-    public Date timestamp; // Use java.util.Date for Serializable support
+    public Date timestamp; // Use java.util.Date for Serialization compatibility
 
     public ForumComment() {}
 

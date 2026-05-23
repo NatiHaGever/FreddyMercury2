@@ -15,12 +15,17 @@ public class NotificationScheduler {
 
     private static final String TAG = "NotificationDebug";
 
+    /**
+     * Schedules a notification reminder 2 days before the task's due date.
+     * Uses setAndAllowWhileIdle to be compatible with Android 12+ without requiring
+     * the strict SCHEDULE_EXACT_ALARM permission.
+     */
     public static void scheduleTwoDayAlert(Context context, Task task) {
         if (task == null || task.dueDate == null || task.dueDate.isEmpty() || task.docId == null) return;
 
         try {
-            // Task dueDate format: "d/M/yyyy" (e.g. 25/12/2023)
-            SimpleDateFormat sdf = new SimpleDateFormat("d/M/yyyy", Locale.getDefault());
+            // Task dueDate format: "dd/MM/yyyy"
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
             Date date = sdf.parse(task.dueDate);
             if (date == null) return;
 
@@ -38,9 +43,9 @@ public class NotificationScheduler {
 
             long triggerTime = calendar.getTimeInMillis();
 
-            // If the alert time is in the past, don't schedule it
+            // If the alert time is already in the past, do not schedule it
             if (triggerTime <= System.currentTimeMillis()) {
-                Log.d(TAG, "Skipping alert - time already passed for: " + task.title);
+                Log.d(TAG, "Skipping alert for '" + task.title + "' - time already passed.");
                 return;
             }
 
@@ -51,7 +56,7 @@ public class NotificationScheduler {
             intent.putExtra("task_title", task.title);
             intent.putExtra("task_id", task.docId);
 
-            // Use docId hash as unique request code
+            // Unique request code based on task document ID
             int requestCode = task.docId.hashCode();
 
             PendingIntent pendingIntent = PendingIntent.getBroadcast(
@@ -61,19 +66,17 @@ public class NotificationScheduler {
                     PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
             );
 
-            // FIX: Using setAndAllowWhileIdle instead of setExactAndAllowWhileIdle
-            // This avoids the strict SecurityException and permission requirement on Android 12+
-            // while still allowing the alarm to fire during battery-saving (Doze) modes.
+            // Use setAndAllowWhileIdle for reliable, battery-friendly delivery
             alarmManager.setAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     triggerTime,
                     pendingIntent
             );
 
-            Log.d(TAG, "Alert scheduled for: " + calendar.getTime().toString() + " for task: " + task.title);
+            Log.d(TAG, "Alert scheduled for: " + calendar.getTime().toString() + " (Task: " + task.title + ")");
 
         } catch (Exception e) {
-            Log.e(TAG, "Error scheduling alert", e);
+            Log.e(TAG, "Error scheduling alert: " + e.getMessage());
         }
     }
 
@@ -93,7 +96,7 @@ public class NotificationScheduler {
         if (pendingIntent != null) {
             alarmManager.cancel(pendingIntent);
             pendingIntent.cancel();
-            Log.d(TAG, "Alert cancelled for: " + docId);
+            Log.d(TAG, "Notification alert cancelled for task ID: " + docId);
         }
     }
 }

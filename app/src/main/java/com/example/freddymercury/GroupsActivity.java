@@ -67,7 +67,7 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
 
-        // Display real email and username in the side menu
+        // FIX 3: Display real email and username in the side menu
         FirebaseUser user = auth.getCurrentUser();
         if (user != null) {
             View headerView = navigationView.getHeaderView(0);
@@ -242,7 +242,7 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
                             }
                         }
                     } else {
-                        Toast.makeText(this, "Invalid group code: " + code, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Invalid group code!", Toast.LENGTH_SHORT).show();
                     }
                 })
                 .addOnFailureListener(e -> Toast.makeText(this, "Search failed", Toast.LENGTH_SHORT).show());

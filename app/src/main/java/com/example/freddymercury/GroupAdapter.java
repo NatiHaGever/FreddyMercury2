@@ -41,6 +41,7 @@ public class GroupAdapter extends RecyclerView.Adapter<GroupAdapter.GroupViewHol
 
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) {
+                // This triggers the choice dialog in GroupsActivity
                 listener.onGroupClick(group);
             }
         });

@@ -8,6 +8,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
@@ -16,13 +17,17 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.MetadataChanges;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.storage.FirebaseStorage;
@@ -41,7 +46,7 @@ public class GroupChatFragment extends Fragment {
     private String currentUsername = "User";
 
     private RecyclerView recyclerView;
-    private ChatAdapter adapter; // Global variable is correctly declared here
+    private ChatAdapter adapter;
     private List<ChatMessage> messageList;
     private EditText editMessage;
     private View btnSend;
@@ -54,6 +59,8 @@ public class GroupChatFragment extends Fragment {
     private String audioFileName;
     private boolean isRecording = false;
     private long startTime;
+
+    private ListenerRegistration chatListener;
 
     private static final int REQUEST_RECORD_AUDIO_PERMISSION = 200;
 
@@ -88,23 +95,20 @@ public class GroupChatFragment extends Fragment {
         editMessage = view.findViewById(R.id.editChatMessage);
         btnSend = view.findViewById(R.id.btnSendMessage);
         btnRecord = view.findViewById(R.id.btnRecordVoice);
-
+        
         view.findViewById(R.id.btnBackToTasks).setOnClickListener(v -> {
             getParentFragmentManager().beginTransaction().remove(this).commit();
         });
 
         messageList = new ArrayList<>();
-
-        // Initializing the global adapter variable without repeating the type name
         adapter = new ChatAdapter(messageList);
-
         LinearLayoutManager layoutManager = new LinearLayoutManager(getContext());
         layoutManager.setStackFromEnd(true);
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setAdapter(adapter);
 
         btnSend.setOnClickListener(v -> sendMessage());
-
+        
         setupVoiceRecorder();
         listenForMessages();
 
@@ -114,11 +118,8 @@ public class GroupChatFragment extends Fragment {
     private void setupVoiceRecorder() {
         btnRecord.setOnClickListener(v -> {
             if (!isRecording) {
-                if (checkPermissions()) {
-                    startRecording();
-                } else {
-                    requestPermissions();
-                }
+                if (checkPermissions()) startRecording();
+                else requestPermissions();
             } else {
                 stopRecording();
             }
@@ -134,10 +135,7 @@ public class GroupChatFragment extends Fragment {
     }
 
     private void startRecording() {
-        // FIX: Replaced "temp_audio.m4a" with a UUID string.
-        // If a user sent two messages rapidly, the second recording would overwrite the first locally before the cloud task finished.
         audioFileName = requireContext().getCacheDir().getAbsolutePath() + "/" + UUID.randomUUID().toString() + ".m4a";
-
         recorder = new MediaRecorder();
         recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
         recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
@@ -150,7 +148,7 @@ public class GroupChatFragment extends Fragment {
             isRecording = true;
             startTime = System.currentTimeMillis();
             btnRecord.setColorFilter(Color.RED);
-            Toast.makeText(getContext(), "Recording... Tap again to stop", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "Recording...", Toast.LENGTH_SHORT).show();
         } catch (IOException e) {
             Log.e("VoiceRecord", "prepare() failed", e);
         }
@@ -161,7 +159,7 @@ public class GroupChatFragment extends Fragment {
             boolean wasShort = (System.currentTimeMillis() - startTime) < 1000;
             try {
                 recorder.stop();
-            } catch (RuntimeException stopException) {
+            } catch (RuntimeException e) {
                 wasShort = true;
             }
             recorder.release();
@@ -170,41 +168,44 @@ public class GroupChatFragment extends Fragment {
             btnRecord.clearColorFilter();
 
             if (wasShort) {
-                Toast.makeText(getContext(), "Recording too short", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Too short", Toast.LENGTH_SHORT).show();
                 new File(audioFileName).delete();
             } else {
-                uploadVoiceMessage();
+                prepareRealtimeVoiceMessage();
             }
         }
     }
 
-    private void uploadVoiceMessage() {
+    private void prepareRealtimeVoiceMessage() {
+        // 1. Create the database entry IMMEDIATELY so it shows in the list right away
+        final String messageId = db.collection("groups").document(groupId).collection("messages").document().getId();
+        final ChatMessage placeholder = new ChatMessage(groupId, currentUserId, currentUsername, "Sending voice...", true);
+        placeholder.messageId = messageId;
+        placeholder.audioUrl = ""; // Special value to show "loading" state in UI
+
+        db.collection("groups").document(groupId).collection("messages").document(messageId).set(placeholder)
+                .addOnSuccessListener(aVoid -> uploadAudioAndFinalize(messageId));
+    }
+
+    private void uploadAudioAndFinalize(String messageId) {
         final File audioFile = new File(audioFileName);
         if (!audioFile.exists()) return;
 
-        Uri fileUri = Uri.fromFile(audioFile);
-        String remoteFileName = UUID.randomUUID().toString() + ".m4a";
-        final StorageReference storageRef = storage.getReference().child("voice_messages/" + groupId + "/" + remoteFileName);
+        final StorageReference storageRef = storage.getReference().child("voice_messages/" + groupId + "/" + audioFile.getName());
 
-        storageRef.putFile(fileUri).continueWithTask(task -> {
-            if (!task.isSuccessful()) {
-                throw task.getException();
-            }
+        storageRef.putFile(Uri.fromFile(audioFile)).continueWithTask(task -> {
+            if (!task.isSuccessful()) throw task.getException();
             return storageRef.getDownloadUrl();
         }).addOnSuccessListener(uri -> {
-            sendVoiceMessage(uri.toString());
-            if (audioFile.exists()) audioFile.delete();
+            // 2. Update the existing message with the real URL
+            db.collection("groups").document(groupId).collection("messages").document(messageId)
+                    .update("audioUrl", uri.toString(), "messageText", "Voice Message");
+            audioFile.delete();
         }).addOnFailureListener(e -> {
-            Log.e("VoiceRecord", "Upload failed: " + e.getMessage());
-            if (getContext() != null) {
-                Toast.makeText(getContext(), "Upload Failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
-            }
+            // 3. Cleanup placeholder if upload failed
+            db.collection("groups").document(groupId).collection("messages").document(messageId).delete();
+            Toast.makeText(getContext(), "Voice send failed", Toast.LENGTH_SHORT).show();
         });
-    }
-
-    private void sendVoiceMessage(String audioUrl) {
-        ChatMessage voiceMsg = new ChatMessage(groupId, currentUserId, currentUsername, audioUrl, true);
-        db.collection("groups").document(groupId).collection("messages").add(voiceMsg);
     }
 
     private void sendMessage() {
@@ -213,38 +214,33 @@ public class GroupChatFragment extends Fragment {
 
         ChatMessage message = new ChatMessage(groupId, currentUserId, currentUsername, text);
         db.collection("groups").document(groupId).collection("messages").add(message)
-                .addOnSuccessListener(documentReference -> editMessage.setText(""))
-                .addOnFailureListener(e -> {
-                    if (getContext() != null) {
-                        Toast.makeText(getContext(), "Failed to send", Toast.LENGTH_SHORT).show();
-                    }
-                });
+                .addOnSuccessListener(documentReference -> editMessage.setText(""));
     }
 
     private void listenForMessages() {
-        db.collection("groups").document(groupId).collection("messages")
-                .orderBy("timestamp", Query.Direction.ASCENDING)
-                .addSnapshotListener((value, error) -> {
-                    if (error != null) return;
-                    if (value != null) {
-                        messageList.clear();
-                        for (QueryDocumentSnapshot doc : value) {
-                            messageList.add(doc.toObject(ChatMessage.class));
-                        }
-                        adapter.notifyDataSetChanged();
-                        if (messageList.size() > 0) {
-                            recyclerView.smoothScrollToPosition(messageList.size() - 1);
-                        }
-                    }
-                });
+        Query query = db.collection("groups").document(groupId).collection("messages")
+                .orderBy("timestamp", Query.Direction.ASCENDING);
+
+        // MetadataChanges.INCLUDE ensures we see local writes (our own messages) instantly
+        chatListener = query.addSnapshotListener(MetadataChanges.INCLUDE, (value, error) -> {
+            if (error != null) return;
+            if (value != null) {
+                messageList.clear();
+                for (QueryDocumentSnapshot doc : value) {
+                    messageList.add(doc.toObject(ChatMessage.class));
+                }
+                adapter.notifyDataSetChanged();
+                if (!messageList.isEmpty()) {
+                    recyclerView.scrollToPosition(messageList.size() - 1);
+                }
+            }
+        });
     }
 
-    // ADDED: Lifecycle hook connection to clear background audio memory leaks
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        if (adapter != null) {
-            adapter.stopAudio();
-        }
+        if (chatListener != null) chatListener.remove();
+        if (adapter != null) adapter.stopAudio();
     }
 }

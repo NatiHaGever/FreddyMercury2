@@ -18,7 +18,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="24dp"
         android:text="Sign In"
-        android:textColor="#000000"
+        android:textColor="@color/text_primary"
         android:textSize="24sp"
         android:textStyle="bold" />
 

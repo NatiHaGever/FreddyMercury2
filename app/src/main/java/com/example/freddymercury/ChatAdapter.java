@@ -29,7 +29,6 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private static final int VIEW_TYPE_VOICE_RECEIVED = 4;
 
     private MediaPlayer mediaPlayer;
-    // CRUCIAL: Track which item is playing right now
     private int currentlyPlayingPosition = -1;
 
     public ChatAdapter(List<ChatMessage> messageList) {
@@ -86,7 +85,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             voiceHolder.senderName.setText(message.senderName);
             setTime(voiceHolder.timeText, message);
 
-            // UI UPDATE: Check if this specific row is the one playing right now
+            // Update UI if this message is currently playing
             if (position == currentlyPlayingPosition) {
                 voiceHolder.btnPlay.setImageResource(android.R.drawable.ic_media_pause);
             } else {
@@ -94,8 +93,18 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             }
 
             voiceHolder.btnPlay.setOnClickListener(v -> {
-                // Pass position so we can selectively reload this row's UI layout
-                playAudio(message.audioUrl, position, v.getContext());
+                // Get the ABSOLUTE LATEST version of the message from the list
+                int currentPos = holder.getBindingAdapterPosition();
+                if (currentPos != RecyclerView.NO_POSITION) {
+                    ChatMessage latestMsg = messageList.get(currentPos);
+                    
+                    if (latestMsg.audioUrl == null || latestMsg.audioUrl.isEmpty()) {
+                        Toast.makeText(v.getContext(), "Voice note is still uploading...", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    
+                    playAudio(latestMsg.audioUrl, currentPos, v.getContext());
+                }
             });
         }
     }
@@ -103,20 +112,19 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private void setTime(TextView timeView, ChatMessage message) {
         if (message.timestamp != null) {
             SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
-            timeView.setText(sdf.format(message.timestamp.toDate()));
+            timeView.setText(sdf.format(message.timestamp));
+        } else {
+            // Show real-time indicator while syncing
+            timeView.setText("..."); 
         }
     }
 
     private void playAudio(String url, int position, android.content.Context context) {
-        if (url == null || url.isEmpty()) return;
-
-        // TACTIC: If the user clicks the pause button on the memo that is ALREADY playing, stop it.
         if (currentlyPlayingPosition == position) {
             stopAudio();
             return;
         }
 
-        // Clean slate: Stop any other running audio track
         stopAudio();
 
         mediaPlayer = new MediaPlayer();
@@ -126,17 +134,12 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             mediaPlayer.setDataSource(url);
             mediaPlayer.prepareAsync();
             mediaPlayer.setOnPreparedListener(MediaPlayer::start);
-
-            // Clean up back to play icons when track runs out completely
             mediaPlayer.setOnCompletionListener(mp -> stopAudio());
-
             mediaPlayer.setOnErrorListener((mp, what, extra) -> {
                 Toast.makeText(context, "Cannot play audio", Toast.LENGTH_SHORT).show();
                 stopAudio();
                 return true;
             });
-
-            // Update this item's look right away to show it's loading/playing
             notifyItemChanged(position);
 
         } catch (IOException e) {
@@ -145,7 +148,6 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
     }
 
-    // Public method to shut everything down cleanly
     public void stopAudio() {
         if (mediaPlayer != null) {
             try {
@@ -162,7 +164,6 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         int oldPlayingPosition = currentlyPlayingPosition;
         currentlyPlayingPosition = -1;
 
-        // Refresh the old running item so its pause icon swaps back to play
         if (oldPlayingPosition != -1) {
             notifyItemChanged(oldPlayingPosition);
         }
