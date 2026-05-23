@@ -71,6 +71,7 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
             return;
         }
 
+        // --- Toolbar Setup (Moved down to avoid camera) ---
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
@@ -83,7 +84,7 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
 
-        // Display real user info in the side menu header
+        // FIX: Display real email and username in the side menu header
         updateMenuHeader(navigationView, user);
 
         todayDateText = findViewById(R.id.todayDateText);
@@ -181,10 +182,8 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
         int id = item.getItemId();
         if (id == R.id.menu_group_tasks) {
             startActivity(new Intent(this, GroupsActivity.class));
-            finish();
         } else if (id == R.id.menu_forum) {
             startActivity(new Intent(this, ForumActivity.class));
-            finish();
         } else if (id == R.id.menu_logout) {
             logout();
         }
@@ -199,8 +198,7 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
     }
 
     @Override
-    public void onTaskClick(Task task) {
-    }
+    public void onTaskClick(Task task) {}
 
     @Override
     public void onViewImage(Task task) {
@@ -233,24 +231,14 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
         }
 
         new AlertDialog.Builder(this)
-                .setTitle("Select task to insert into " + taskFile.fileName)
+                .setTitle("Insert task into " + taskFile.fileName)
                 .setItems(taskTitles, (dialog, which) -> {
                     Task selectedTask = taskList.get(which);
-                    
-                    // Fetch latest file content and update correctly
-                    db.collection("files").document(taskFile.docId).get().addOnSuccessListener(snapshot -> {
-                        if (snapshot.exists()) {
-                            TaskFile currentFile = snapshot.toObject(TaskFile.class);
-                            if (currentFile != null) {
-                                if (currentFile.tasks == null) currentFile.tasks = new ArrayList<>();
-                                currentFile.tasks.add(selectedTask);
-                                
-                                db.collection("files").document(taskFile.docId).set(currentFile)
-                                        .addOnSuccessListener(aVoid -> Toast.makeText(Home.this, "Inserted successfully!", Toast.LENGTH_SHORT).show())
-                                        .addOnFailureListener(e -> Toast.makeText(Home.this, "Failed to insert", Toast.LENGTH_SHORT).show());
-                            }
-                        }
-                    });
+                    // Use FieldValue.arrayUnion to safely add the task object to the array in Firestore
+                    db.collection("files").document(taskFile.docId)
+                            .update("tasks", FieldValue.arrayUnion(selectedTask))
+                            .addOnSuccessListener(aVoid -> Toast.makeText(Home.this, "Inserted!", Toast.LENGTH_SHORT).show())
+                            .addOnFailureListener(e -> Toast.makeText(Home.this, "Error inserting task", Toast.LENGTH_SHORT).show());
                 })
                 .show();
     }
@@ -268,21 +256,31 @@ public class Home extends AppCompatActivity implements FileAdapter.OnFileClickLi
     @Override
     public void onTaskDelete(Task task) {
         db.collection("tasks").document(task.docId).delete();
+        NotificationScheduler.cancelAlert(this, task.docId);
     }
 
     private void showDeleteAllConfirmation() {
         new AlertDialog.Builder(this)
                 .setTitle("Delete All")
-                .setMessage("Delete all personal tasks and files permanently?")
+                .setMessage("Are you sure you want to delete everything? This action is permanent.")
                 .setPositiveButton("Yes, Delete All", (dialog, which) -> {
                     String userId = auth.getCurrentUser().getUid();
                     WriteBatch batch = db.batch();
 
                     db.collection("tasks").whereEqualTo("userId", userId).get().addOnSuccessListener(queryTasks -> {
-                        for (QueryDocumentSnapshot doc : queryTasks) batch.delete(doc.getReference());
+                        for (QueryDocumentSnapshot doc : queryTasks) {
+                            if (doc.getString("groupId") == null || doc.getString("groupId").equals("personal")) {
+                                batch.delete(doc.getReference());
+                                NotificationScheduler.cancelAlert(Home.this, doc.getId());
+                            }
+                        }
                         
                         db.collection("files").whereEqualTo("userId", userId).get().addOnSuccessListener(queryFiles -> {
-                            for (QueryDocumentSnapshot doc : queryFiles) batch.delete(doc.getReference());
+                            for (QueryDocumentSnapshot doc : queryFiles) {
+                                if (doc.getString("groupId") == null) {
+                                    batch.delete(doc.getReference());
+                                }
+                            }
                             
                             batch.commit().addOnSuccessListener(aVoid -> 
                                 Toast.makeText(Home.this, "All personal data cleared", Toast.LENGTH_SHORT).show());

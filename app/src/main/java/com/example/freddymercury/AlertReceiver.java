@@ -2,12 +2,13 @@ package com.example.freddymercury;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.util.Log;
-import android.widget.Toast;
+
 import androidx.core.app.NotificationCompat;
 
 public class AlertReceiver extends BroadcastReceiver {
@@ -15,12 +16,9 @@ public class AlertReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        // 1. THIS PROVES THE ALARM TRIGGERED!
-        Log.d("AlertDebug", "🔔 ALARM WOKE UP THE APP! Executing receiver...");
-        Toast.makeText(context, "ALARM TRIGGERED IN BACKGROUND!", Toast.LENGTH_LONG).show();
-
-        String taskTitle = intent.getStringExtra("task_title");
-        if (taskTitle == null) taskTitle = "A task";
+        String type = intent.getStringExtra("type");
+        String title = intent.getStringExtra("task_title");
+        if (title == null) title = "Reminder";
 
         NotificationManager notificationManager =
                 (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
@@ -28,21 +26,32 @@ public class AlertReceiver extends BroadcastReceiver {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
-                    "Task Reminders",
+                    "Freddy Reminders",
                     NotificationManager.IMPORTANCE_HIGH
             );
-            channel.setDescription("Alerts for tasks due in 2 days");
             notificationManager.createNotificationChannel(channel);
         }
 
+        Intent activityIntent = new Intent(context, Home.class);
+        PendingIntent contentIntent = PendingIntent.getActivity(context, 0, activityIntent, PendingIntent.FLAG_IMMUTABLE);
+
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-                .setContentTitle("Task Deadline Approaching!")
-                .setContentText("\"" + taskTitle + "\" is due in 2 days.")
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setAutoCancel(true);
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setAutoCancel(true)
+                .setContentIntent(contentIntent)
+                .setPriority(NotificationCompat.PRIORITY_HIGH);
+
+        if ("chat".equals(type)) {
+            String groupName = intent.getStringExtra("group_name");
+            String senderName = intent.getStringExtra("sender_name");
+            String message = intent.getStringExtra("message");
+            builder.setContentTitle("New message in " + groupName)
+                   .setContentText(senderName + ": " + message);
+        } else {
+            builder.setContentTitle("Task Deadline Approaching!")
+                   .setContentText("\"" + title + "\" is due in 1 day.");
+        }
 
         notificationManager.notify((int) System.currentTimeMillis(), builder.build());
-        Log.d("AlertDebug", "🔔 NOTIFICATION SENT TO ANDROID OS!");
     }
 }

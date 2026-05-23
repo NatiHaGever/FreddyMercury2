@@ -52,12 +52,21 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
+            startActivity(new Intent(this, LogIn.class));
+            finish();
+            return;
+        }
+
+        // Toolbar Setup
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setTitle("Group Tasks");
         }
 
+        // Side Menu Setup
         drawerLayout = findViewById(R.id.drawer_layout);
         NavigationView navigationView = findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
@@ -67,21 +76,8 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
 
-        // FIX 3: Display real email and username in the side menu
-        FirebaseUser user = auth.getCurrentUser();
-        if (user != null) {
-            View headerView = navigationView.getHeaderView(0);
-            TextView emailText = headerView.findViewById(R.id.userEmailText);
-            TextView usernameText = headerView.findViewById(R.id.usernameText);
-            if (emailText != null) emailText.setText(user.getEmail());
-            
-            db.collection("users").document(user.getUid()).get().addOnSuccessListener(doc -> {
-                if (doc.exists() && usernameText != null) {
-                    String name = doc.getString("username");
-                    if (name != null) usernameText.setText(name);
-                }
-            });
-        }
+        // Update real user info in the menu header
+        updateMenuHeader(navigationView, user);
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
@@ -113,6 +109,19 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
         loadUserGroups();
     }
 
+    private void updateMenuHeader(NavigationView navigationView, FirebaseUser user) {
+        View headerView = navigationView.getHeaderView(0);
+        TextView emailText = headerView.findViewById(R.id.userEmailText);
+        TextView usernameText = headerView.findViewById(R.id.usernameText);
+        if (emailText != null) emailText.setText(user.getEmail());
+        db.collection("users").document(user.getUid()).get().addOnSuccessListener(doc -> {
+            if (doc.exists() && usernameText != null) {
+                String name = doc.getString("username");
+                if (name != null) usernameText.setText(name);
+            }
+        });
+    }
+
     private void showGroupOptionsDialog(Group group) {
         String[] options = {"📋 Tasks & Files", "💬 Group Chat"};
         new AlertDialog.Builder(this)
@@ -120,9 +129,7 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
                 .setItems(options, (dialog, which) -> {
                     Intent intent = new Intent(GroupsActivity.this, GroupDetailsActivity.class);
                     intent.putExtra("group", group);
-                    if (which == 1) {
-                        intent.putExtra("start_with_chat", true);
-                    }
+                    if (which == 1) intent.putExtra("start_with_chat", true);
                     startActivity(intent);
                 })
                 .show();
@@ -134,8 +141,6 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
         if (id == R.id.menu_my_tasks) {
             startActivity(new Intent(this, Home.class));
             finish();
-        } else if (id == R.id.menu_group_tasks) {
-            drawerLayout.closeDrawer(GravityCompat.START);
         } else if (id == R.id.menu_forum) {
             startActivity(new Intent(this, ForumActivity.class));
             finish();
@@ -155,9 +160,7 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
     private void loadUserGroups() {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) return;
-        String userId = user.getUid();
-
-        db.collection("groups").whereArrayContains("members", userId)
+        db.collection("groups").whereArrayContains("members", user.getUid())
                 .addSnapshotListener((value, error) -> {
                     if (value != null) {
                         groupList.clear();
@@ -176,6 +179,7 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
         builder.setTitle("Create Group");
         final EditText input = new EditText(this);
         input.setHint("Group Name");
+        input.setPadding(40, 40, 40, 40);
         builder.setView(input);
         builder.setPositiveButton("Create", (dialog, which) -> {
             String name = input.getText().toString().trim();
@@ -186,26 +190,20 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
     }
 
     private void createGroup(String name) {
-        if (auth.getCurrentUser() == null) return;
-        String userId = auth.getCurrentUser().getUid();
-
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) return;
         String customGroupId = db.collection("groups").document().getId();
         String groupCode = generateRandomCode(6);
-
-        Group newGroup = new Group(customGroupId, name, groupCode, userId);
-
+        Group newGroup = new Group(customGroupId, name, groupCode, user.getUid());
         db.collection("groups").document(customGroupId).set(newGroup)
-                .addOnSuccessListener(aVoid -> Toast.makeText(this, "Group Created! Code: " + groupCode, Toast.LENGTH_LONG).show())
-                .addOnFailureListener(e -> Toast.makeText(this, "Failed to create group", Toast.LENGTH_SHORT).show());
+                .addOnSuccessListener(aVoid -> Toast.makeText(this, "Group Created! Code: " + groupCode, Toast.LENGTH_LONG).show());
     }
 
     private String generateRandomCode(int length) {
         String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         StringBuilder sb = new StringBuilder();
         Random random = new Random();
-        for (int i = 0; i < length; i++) {
-            sb.append(chars.charAt(random.nextInt(chars.length())));
-        }
+        for (int i = 0; i < length; i++) sb.append(chars.charAt(random.nextInt(chars.length())));
         return sb.toString();
     }
 
@@ -213,7 +211,9 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Join Group");
         final EditText input = new EditText(this);
-        input.setHint("Enter 6-digit Group Code");
+        input.setHint("Enter 6-digit Code");
+        input.setPadding(40, 40, 40, 40);
+        input.setInputType(InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS);
         builder.setView(input);
         builder.setPositiveButton("Join", (dialog, which) -> {
             String code = input.getText().toString().trim().toUpperCase();
@@ -224,27 +224,24 @@ public class GroupsActivity extends AppCompatActivity implements NavigationView.
     }
 
     private void joinGroup(String code) {
-        if (auth.getCurrentUser() == null) return;
-        String userId = auth.getCurrentUser().getUid();
-
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) return;
         db.collection("groups").whereEqualTo("groupCode", code).get()
                 .addOnSuccessListener(querySnapshot -> {
                     if (!querySnapshot.isEmpty()) {
                         for (QueryDocumentSnapshot doc : querySnapshot) {
                             Group group = doc.toObject(Group.class);
-                            if (group.members != null && group.members.contains(userId)) {
+                            if (group.members != null && group.members.contains(user.getUid())) {
                                 Toast.makeText(this, "Already a member", Toast.LENGTH_SHORT).show();
                             } else {
                                 db.collection("groups").document(doc.getId())
-                                        .update("members", FieldValue.arrayUnion(userId))
-                                        .addOnSuccessListener(aVoid -> Toast.makeText(GroupsActivity.this, "Joined successfully!", Toast.LENGTH_SHORT).show())
-                                        .addOnFailureListener(e -> Toast.makeText(GroupsActivity.this, "Error joining group", Toast.LENGTH_SHORT).show());
+                                        .update("members", FieldValue.arrayUnion(user.getUid()))
+                                        .addOnSuccessListener(aVoid -> Toast.makeText(this, "Joined Group!", Toast.LENGTH_SHORT).show());
                             }
                         }
                     } else {
                         Toast.makeText(this, "Invalid group code!", Toast.LENGTH_SHORT).show();
                     }
-                })
-                .addOnFailureListener(e -> Toast.makeText(this, "Search failed", Toast.LENGTH_SHORT).show());
+                });
     }
 }

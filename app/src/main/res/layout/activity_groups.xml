@@ -4,8 +4,10 @@
     android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
     android:background="@color/bg_light">
 
+    <!-- Main Content -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
@@ -13,7 +15,8 @@
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
+            android:layout_height="80dp"
+            android:paddingTop="24dp"
             android:background="@color/colorPrimary"
             app:titleTextColor="#FFFFFF"
             android:elevation="4dp"
@@ -25,34 +28,20 @@
             android:layout_below="@id/toolbar"
             android:padding="16dp">
 
-            <LinearLayout
-                android:id="@+id/titleGroup"
-                android:layout_width="match_parent"
+            <TextView
+                android:id="@+id/groupsTitle"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <ImageView
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:src="@drawable/do_it_"
-                    android:layout_marginEnd="12dp"/>
-
-                <TextView
-                    android:id="@+id/groupsTitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="My Groups"
-                    android:textColor="@color/text_primary"
-                    android:textSize="24sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
+                android:text="My Groups"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/groupsRecycler"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_below="@id/titleGroup"
+                android:layout_below="@id/groupsTitle"
                 android:layout_marginTop="16dp"
                 android:layout_above="@+id/groupButtons" />
 
@@ -61,37 +50,42 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_alignParentBottom="true"
-                android:paddingTop="8dp"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:paddingTop="8dp">
 
                 <Button
                     android:id="@+id/createGroupBtn"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:layout_marginEnd="8dp"
-                    android:backgroundTint="@color/colorPrimary"
                     android:text="Create Group"
-                    android:textColor="#FFFFFF"/>
+                    android:backgroundTint="@color/colorPrimary"
+                    android:textColor="#FFFFFF" />
 
                 <Button
                     android:id="@+id/joinGroupBtn"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:backgroundTint="@color/colorAccent"
                     android:text="Join Group"
-                    android:textColor="#FFFFFF"/>
+                    android:layout_marginStart="8dp"
+                    android:backgroundTint="@color/colorAccent"
+                    android:textColor="#FFFFFF" />
             </LinearLayout>
         </RelativeLayout>
     </RelativeLayout>
 
+    <!-- Bigger Side Menu -->
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/nav_view"
-        android:layout_width="wrap_content"
+        android:layout_width="300dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
         app:headerLayout="@layout/nav_header"
-        app:menu="@menu/main_menu" />
+        app:menu="@menu/main_menu"
+        app:itemTextAppearance="@style/NavMenuText"
+        app:itemIconSize="32dp"
+        app:itemIconPadding="24dp"
+        app:itemVerticalPadding="16dp" />
 
 </androidx.drawerlayout.widget.DrawerLayout>

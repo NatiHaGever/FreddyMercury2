@@ -4,6 +4,7 @@ import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.util.Log;
 
 import java.text.SimpleDateFormat;
@@ -16,24 +17,23 @@ public class NotificationScheduler {
     private static final String TAG = "NotificationDebug";
 
     /**
-     * Schedules a notification reminder 2 days before the task's due date.
-     * Uses setAndAllowWhileIdle to be compatible with Android 12+ without requiring
-     * the strict SCHEDULE_EXACT_ALARM permission.
+     * Schedules a notification reminder 1 day before the task's due date.
+     * Uses setAndAllowWhileIdle for reliability across all Android versions.
      */
-    public static void scheduleTwoDayAlert(Context context, Task task) {
+    public static void scheduleTaskAlert(Context context, Task task) {
         if (task == null || task.dueDate == null || task.dueDate.isEmpty() || task.docId == null) return;
 
         try {
-            // Task dueDate format: "dd/MM/yyyy"
-            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+            // MATCHING: Use "d/M/yyyy" to match AddTask.java's date picker output
+            SimpleDateFormat sdf = new SimpleDateFormat("d/M/yyyy", Locale.getDefault());
             Date date = sdf.parse(task.dueDate);
             if (date == null) return;
 
             Calendar calendar = Calendar.getInstance();
             calendar.setTime(date);
 
-            // Set alert for 2 days before the due date
-            calendar.add(Calendar.DAY_OF_YEAR, -2);
+            // Set alert for 1 day before the due date
+            calendar.add(Calendar.DAY_OF_YEAR, -1);
             
             // Set notification time to 9:00 AM on that day
             calendar.set(Calendar.HOUR_OF_DAY, 9);
@@ -43,7 +43,7 @@ public class NotificationScheduler {
 
             long triggerTime = calendar.getTimeInMillis();
 
-            // If the alert time is already in the past, do not schedule it
+            // If the alert time is already in the past, don't schedule it
             if (triggerTime <= System.currentTimeMillis()) {
                 Log.d(TAG, "Skipping alert for '" + task.title + "' - time already passed.");
                 return;
@@ -53,10 +53,11 @@ public class NotificationScheduler {
             if (alarmManager == null) return;
 
             Intent intent = new Intent(context, AlertReceiver.class);
+            intent.putExtra("type", "task");
             intent.putExtra("task_title", task.title);
             intent.putExtra("task_id", task.docId);
 
-            // Unique request code based on task document ID
+            // Unique request code based on task document ID hash
             int requestCode = task.docId.hashCode();
 
             PendingIntent pendingIntent = PendingIntent.getBroadcast(
@@ -66,7 +67,8 @@ public class NotificationScheduler {
                     PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
             );
 
-            // Use setAndAllowWhileIdle for reliable, battery-friendly delivery
+            // On Android 12+, inexact alarms with setAndAllowWhileIdle do NOT require 
+            // the SCHEDULE_EXACT_ALARM permission, avoiding SecurityExceptions.
             alarmManager.setAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     triggerTime,

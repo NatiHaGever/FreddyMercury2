@@ -38,7 +38,6 @@ import okhttp3.Response;
 
 public class AddTask extends AppCompatActivity {
 
-    // --- YOUR INTEGRATED IMGBB API KEY ---
     private static final String IMGBB_API_KEY = "16784a4f98a01b6293ec3e2e11f642c4";
 
     EditText taskTitleInput;
@@ -99,6 +98,7 @@ public class AddTask extends AppCompatActivity {
         Calendar c = Calendar.getInstance();
         new DatePickerDialog(this,
                 (view, year, month, day) -> {
+                    // Output format "d/M/yyyy" matches NotificationScheduler expectation
                     selectedDate = day + "/" + (month + 1) + "/" + year;
                     dueDateText.setText(selectedDate);
                 },
@@ -122,11 +122,11 @@ public class AddTask extends AppCompatActivity {
     }
 
     private void uploadImageToImgBB() {
-        Toast.makeText(this, "Uploading image to ImgBB...", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Uploading image...", Toast.LENGTH_SHORT).show();
 
         String base64Image = convertUriToBase64(selectedImageUri);
         if (base64Image == null) {
-            Toast.makeText(this, "Failed to process image file layout", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Failed to process image", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -142,7 +142,6 @@ public class AddTask extends AppCompatActivity {
         httpClient.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, java.io.IOException e) {
-                Log.e("ImgBBError", "Network upload failed", e);
                 runOnUiThread(() -> {
                     Toast.makeText(AddTask.this, "Upload failed, saving text only", Toast.LENGTH_SHORT).show();
                     saveTaskToFirestore("");
@@ -154,22 +153,13 @@ public class AddTask extends AppCompatActivity {
                 try {
                     if (response.isSuccessful() && response.body() != null) {
                         String rawJsonResponse = response.body().string();
-
                         JSONObject jsonObject = new JSONObject(rawJsonResponse);
                         String directImageUrl = jsonObject.getJSONObject("data").getString("url");
-
-                        Log.d("ImgBBDebug", "Uploaded successfully! Direct Link: " + directImageUrl);
-
                         runOnUiThread(() -> saveTaskToFirestore(directImageUrl));
                     } else {
-                        Log.e("ImgBBError", "Server rejected request: " + response.message());
-                        runOnUiThread(() -> {
-                            Toast.makeText(AddTask.this, "Server rejected image, saving text only", Toast.LENGTH_SHORT).show();
-                            saveTaskToFirestore("");
-                        });
+                        runOnUiThread(() -> saveTaskToFirestore(""));
                     }
                 } catch (Exception e) {
-                    Log.e("ImgBBError", "Failed parsing server response text", e);
                     runOnUiThread(() -> saveTaskToFirestore(""));
                 }
             }
@@ -188,7 +178,6 @@ public class AddTask extends AppCompatActivity {
             byte[] imageBytes = byteBuffer.toByteArray();
             return Base64.encodeToString(imageBytes, Base64.DEFAULT);
         } catch (Exception e) {
-            Log.e("ImgBBError", "Base64 conversion crash prevented", e);
             return null;
         }
     }
@@ -211,12 +200,12 @@ public class AddTask extends AppCompatActivity {
                 .add(task)
                 .addOnSuccessListener(doc -> {
                     task.docId = doc.getId();
-                    NotificationScheduler.scheduleTwoDayAlert(AddTask.this, task);
+                    // FIXED: Call the updated scheduleTaskAlert method
+                    NotificationScheduler.scheduleTaskAlert(AddTask.this, task);
                     Toast.makeText(this, "Task saved", Toast.LENGTH_SHORT).show();
                     finish();
                 })
                 .addOnFailureListener(e -> {
-                    Log.e("TaskDebug", "Error writing task to Firestore: ", e);
                     Toast.makeText(this, "Error saving task", Toast.LENGTH_SHORT).show();
                 });
     }

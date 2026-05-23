@@ -14,7 +14,7 @@ public class ForumPost implements Serializable {
     public String description;
     
     @ServerTimestamp
-    public Date timestamp; // Use Date for Serializable support
+    public Date timestamp;
 
     public ForumPost() {}
 

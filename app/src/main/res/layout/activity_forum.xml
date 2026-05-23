@@ -13,10 +13,12 @@
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
+            android:layout_height="80dp"
+            android:paddingTop="24dp"
             android:background="@color/colorPrimary"
+            app:titleTextColor="#FFFFFF"
             android:elevation="4dp"
-            app:titleTextColor="#FFFFFF" />
+            app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/forumRecycler"
@@ -38,12 +40,17 @@
             app:tint="#FFFFFF" />
     </RelativeLayout>
 
+    <!-- Bigger Side Menu -->
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/nav_view"
-        android:layout_width="wrap_content"
+        android:layout_width="300dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
         app:headerLayout="@layout/nav_header"
-        app:menu="@menu/main_menu" />
+        app:menu="@menu/main_menu"
+        app:itemTextAppearance="@style/NavMenuText"
+        app:itemIconSize="32dp"
+        app:itemIconPadding="24dp"
+        app:itemVerticalPadding="16dp" />
 
 </androidx.drawerlayout.widget.DrawerLayout>
