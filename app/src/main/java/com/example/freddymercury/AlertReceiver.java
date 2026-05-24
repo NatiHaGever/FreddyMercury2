@@ -26,7 +26,7 @@ public class AlertReceiver extends BroadcastReceiver {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
-                    "Freddy Reminders",
+                    "Do-it! Reminders",
                     NotificationManager.IMPORTANCE_HIGH
             );
             notificationManager.createNotificationChannel(channel);

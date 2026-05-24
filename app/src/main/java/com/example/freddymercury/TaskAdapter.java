@@ -1,11 +1,11 @@
 package com.example.freddymercury;
 
 import android.content.Context;
-import android.content.res.ColorStateList;
 import android.graphics.Paint;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.OvershootInterpolator; // Added for bounce
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -24,7 +24,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         void onTaskCompletedToggle(Task task);
         void onTaskDelete(Task task);
         void onTaskClick(Task task);
-        void onViewImage(Task task); // Added for the preview button
+        void onViewImage(Task task);
     }
 
     public TaskAdapter(List<Task> tasks, OnTaskActionListener listener) {
@@ -52,7 +52,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         // Load image with Glide if it exists
         if (t.imageUrl != null && !t.imageUrl.isEmpty()) {
             holder.taskUploadedImage.setVisibility(View.VISIBLE);
-            holder.viewImageBtn.setVisibility(View.VISIBLE); // Show button if image exists
+            holder.viewImageBtn.setVisibility(View.VISIBLE);
             Glide.with(context)
                     .load(t.imageUrl)
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
@@ -61,15 +61,30 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
                     .into(holder.taskUploadedImage);
         } else {
             holder.taskUploadedImage.setVisibility(View.GONE);
-            holder.viewImageBtn.setVisibility(View.GONE); // Hide button if no image
+            holder.viewImageBtn.setVisibility(View.GONE);
         }
 
         if (t.completed) {
             holder.itemContainer.setBackgroundColor(context.getResources().getColor(R.color.task_done_bg));
             holder.title.setPaintFlags(holder.title.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
             holder.title.setTextColor(context.getResources().getColor(R.color.text_muted));
-            holder.statusBadge.setVisibility(View.VISIBLE);
             holder.completedBtn.setText("Undo");
+
+            // Animation Logic
+            if (holder.statusBadge.getVisibility() != View.VISIBLE) {
+                holder.statusBadge.setVisibility(View.VISIBLE);
+                holder.statusBadge.setScaleX(0f);
+                holder.statusBadge.setScaleY(0f);
+                holder.statusBadge.animate()
+                        .scaleX(1f)
+                        .scaleY(1f)
+                        .setDuration(400)
+                        .setInterpolator(new OvershootInterpolator())
+                        .start();
+            } else {
+                // Ensure it's visible if already completed
+                holder.statusBadge.setVisibility(View.VISIBLE);
+            }
         } else {
             holder.itemContainer.setBackgroundColor(context.getResources().getColor(android.R.color.white));
             holder.title.setPaintFlags(holder.title.getPaintFlags() & (~Paint.STRIKE_THRU_TEXT_FLAG));
