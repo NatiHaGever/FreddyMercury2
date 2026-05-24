@@ -20,7 +20,7 @@ public class TaskFile implements Serializable {
         this.fileName = fileName;
         this.userId = userId;
         this.tasks = new ArrayList<>();
-        this.icon = "📁"; // Default icon
+        this.icon = "📁";
         this.groupId = null; // Default to personal
     }
 }
