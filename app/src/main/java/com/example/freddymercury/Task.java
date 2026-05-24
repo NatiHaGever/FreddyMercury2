@@ -14,7 +14,7 @@ public class Task implements Serializable {
     public String groupId;
     public String imageUrl;
 
-    // Fixed: Corrected constructor name from User() to Task()
+
     public Task() {
     }
 
