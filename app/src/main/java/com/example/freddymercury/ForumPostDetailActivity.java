@@ -84,7 +84,7 @@ public class ForumPostDetailActivity extends AppCompatActivity {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) return;
 
-        // Clear input early for better UX
+        // Clear input early for better User Experience
         commentInput.setText("");
 
         db.collection("users").document(user.getUid()).get().addOnSuccessListener(doc -> {

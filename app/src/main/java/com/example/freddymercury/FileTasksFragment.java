@@ -84,10 +84,10 @@ public class FileTasksFragment extends Fragment implements TaskAdapter.OnTaskAct
 
         fileListener = db.collection("files").document(fileDocId)
                 .addSnapshotListener((documentSnapshot, e) -> {
-                    if (e != null) return;
+                    if (e != null) return; //
                     if (documentSnapshot != null && documentSnapshot.exists()) {
                         TaskFile file = documentSnapshot.toObject(TaskFile.class);
-                        if (file != null && file.tasks != null) {
+                        if (file != null && file.tasks != null) { // Ensure tasks is not null and if not, updates the list
                             taskList.clear();
                             taskList.addAll(file.tasks);
                             adapter.notifyDataSetChanged();
@@ -104,7 +104,7 @@ public class FileTasksFragment extends Fragment implements TaskAdapter.OnTaskAct
                 .addOnFailureListener(e -> Toast.makeText(getContext(), "Sync failed", Toast.LENGTH_SHORT).show());
 
         if (task.docId != null && !task.docId.isEmpty()) {
-            db.collection("tasks").document(task.docId).update("completed", task.completed);
+            db.collection("tasks").document(task.docId).update("completed", task.completed); //updates outside the file
         }
     }
 

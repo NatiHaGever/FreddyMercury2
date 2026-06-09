@@ -68,12 +68,12 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 return new VoiceViewHolder(view);
             default:
                 throw new IllegalArgumentException("Invalid view type");
-        }
+        } //which xml to use here
     }
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-        ChatMessage message = messageList.get(position);
+        ChatMessage message = messageList.get(position); //sends data for the xml to use
 
         if (holder instanceof TextViewHolder) {
             TextViewHolder textHolder = (TextViewHolder) holder;
@@ -94,16 +94,16 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
             voiceHolder.btnPlay.setOnClickListener(v -> {
                 // Get the ABSOLUTE LATEST version of the message from the list
-                int currentPos = holder.getBindingAdapterPosition();
-                if (currentPos != RecyclerView.NO_POSITION) {
+                int currentPos = holder.getBindingAdapterPosition(); // finds exact position
+                if (currentPos != RecyclerView.NO_POSITION) { //security check
                     ChatMessage latestMsg = messageList.get(currentPos);
                     
                     if (latestMsg.audioUrl == null || latestMsg.audioUrl.isEmpty()) {
                         Toast.makeText(v.getContext(), "Voice note is still uploading...", Toast.LENGTH_SHORT).show();
                         return;
-                    }
+                    } // if doesnt exists currently
                     
-                    playAudio(latestMsg.audioUrl, currentPos, v.getContext());
+                    playAudio(latestMsg.audioUrl, currentPos, v.getContext()); //plays
                 }
             });
         }
@@ -130,11 +130,11 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         mediaPlayer = new MediaPlayer();
         currentlyPlayingPosition = position;
 
-        try {
+        try { //prepares the app to play the audio with avoiding any errors
             mediaPlayer.setDataSource(url);
-            mediaPlayer.prepareAsync();
-            mediaPlayer.setOnPreparedListener(MediaPlayer::start);
-            mediaPlayer.setOnCompletionListener(mp -> stopAudio());
+            mediaPlayer.prepareAsync(); // prepares the player in the background
+            mediaPlayer.setOnPreparedListener(MediaPlayer::start); // ready? play it
+            mediaPlayer.setOnCompletionListener(mp -> stopAudio()); // finished? stop
             mediaPlayer.setOnErrorListener((mp, what, extra) -> {
                 Toast.makeText(context, "Cannot play audio", Toast.LENGTH_SHORT).show();
                 stopAudio();
@@ -148,7 +148,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
     }
 
-    public void stopAudio() {
+    public void stopAudio() { // checks if it is playing and stops
         if (mediaPlayer != null) {
             try {
                 if (mediaPlayer.isPlaying()) {
@@ -157,12 +157,12 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            mediaPlayer.release();
+            mediaPlayer.release(); // deletes it from memory
             mediaPlayer = null;
         }
 
         int oldPlayingPosition = currentlyPlayingPosition;
-        currentlyPlayingPosition = -1;
+        currentlyPlayingPosition = -1; // back to default
 
         if (oldPlayingPosition != -1) {
             notifyItemChanged(oldPlayingPosition);
