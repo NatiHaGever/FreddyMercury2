@@ -54,7 +54,7 @@ public class AddForumPostActivity extends AppCompatActivity {
                 if (name != null) authorName = name;
             }
 
-            String postId = db.collection("forum").document().getId();
+            String postId = db.collection("forum").document().getId(); //rndID
             ForumPost post = new ForumPost(user.getUid(), authorName, title, description);
             post.postId = postId;
 
