@@ -184,15 +184,15 @@ public class GroupChatActivity extends AppCompatActivity {
         final File audioFile = new File(audioFileName);
         if (!audioFile.exists() || audioFile.length() == 0) return;
 
-        Uri fileUri = Uri.fromFile(audioFile);
-        String remoteFileName = UUID.randomUUID().toString() + ".m4a";
+        Uri fileUri = Uri.fromFile(audioFile); //converting to an url
+        String remoteFileName = UUID.randomUUID().toString() + ".m4a"; // so 2 people wont ruin each other msg at the same time
         final StorageReference storageRef = storage.getReference().child("voice_messages/" + groupId + "/" + remoteFileName);
 
         storageRef.putFile(fileUri)
                 .addOnSuccessListener(taskSnapshot -> {
-                    storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
-                        sendVoiceMessage(uri.toString());
-                        audioFile.delete();
+                    storageRef.getDownloadUrl().addOnSuccessListener(uri -> { // requests to upload
+                        sendVoiceMessage(uri.toString());  //uploads the file to db
+                        audioFile.delete(); //deletes from memory
                     });
                 })
                 .addOnFailureListener(e -> Toast.makeText(this, "Upload failed", Toast.LENGTH_SHORT).show());

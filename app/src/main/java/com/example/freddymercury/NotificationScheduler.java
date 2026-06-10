@@ -60,16 +60,16 @@ public class NotificationScheduler {
             // Unique request code based on task document ID hash
             int requestCode = task.docId.hashCode();
 
-            PendingIntent pendingIntent = PendingIntent.getBroadcast(
+            PendingIntent pendingIntent = PendingIntent.getBroadcast( // asks to save it and send it when it should
                     context,
                     requestCode,
                     intent,
-                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE // FLAG_IMMUTABLE for Android 12+ and security
             );
 
             // On Android 12+, inexact alarms with setAndAllowWhileIdle do NOT require 
             // the SCHEDULE_EXACT_ALARM permission, avoiding SecurityExceptions.
-            alarmManager.setAndAllowWhileIdle(
+            alarmManager.setAndAllowWhileIdle( // sends the notification
                     AlarmManager.RTC_WAKEUP,
                     triggerTime,
                     pendingIntent
